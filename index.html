@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bidirectional Translation</title>
+    <style>
+      :root {
+        /* --- Dark Mode (Padrão) --- */
+        --bg-color: #121212;
+        --card-bg: #1e1e1e;
+        --text-main: #e0e0e0;
+        --text-muted: #a0a0a0;
+        --primary: #3498db;
+        --accent: #9b59b6;
+        --success: #27ae60;
+        --warning: #e67e22;
+        --danger: #e74c3c;
+        --missing: #2980b9;
+        --border-radius: 12px;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+
+        --btn-loaded-bg: #2ecc71;
+        --btn-loaded-text: #000000;
+      }
+
+      /* --- Light Mode --- */
+      body.light-mode {
+        --bg-color: #f4f6f8;
+        --card-bg: #ffffff;
+        --text-main: #2c3e50;
+        --text-muted: #7f8c8d;
+        --primary: #3498db;
+        --success: #27ae60;
+        --warning: #e67e22;
+        --missing: #2980b9;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+
+        --btn-loaded-bg: #27ae60;
+        --btn-loaded-text: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-family);
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      /* --- Header --- */
+      header {
+        background: var(--card-bg);
+        padding: 1rem 1.5rem;
+        box-shadow: var(--shadow);
+        z-index: 10;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .brand-area {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      h1 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-main);
+        white-space: nowrap;
+      }
+
+      .setup-container {
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+      }
+
+      .btn {
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s;
+        background-color: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+      .btn:disabled {
+        background-color: #555;
+        cursor: not-allowed;
+        transform: none;
+        color: #888;
+      }
+
+      .btn-outline {
+        background: transparent;
+        border: 1px solid var(--primary);
+        color: var(--primary);
+      }
+      .btn-outline:hover {
+        background: var(--primary);
+        color: white;
+      }
+
+      .btn-loaded {
+        background-color: var(--btn-loaded-bg) !important;
+        color: var(--btn-loaded-text) !important;
+        border-color: var(--btn-loaded-bg) !important;
+        font-weight: 700 !important;
+        box-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
+      }
+
+      .btn-danger {
+        background-color: var(--danger);
+        color: white;
+      }
+
+      input[type="file"] {
+        font-size: 100px;
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      /* --- Settings Panel (Dropdown) --- */
+      #settings-panel {
+        display: none;
+        position: absolute;
+        top: 70px;
+        left: 20px; /* Alinhado à esquerda no desktop */
+        background: var(--card-bg);
+        border: 1px solid #444;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        z-index: 100;
+        width: 300px;
+      }
+      body.light-mode #settings-panel {
+        border-color: #ddd;
+      }
+
+      #settings-panel h4 {
+        margin-bottom: 10px;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+      }
+      .settings-group {
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      /* --- Main Study Area --- */
+      main {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 1rem;
+        width: 100%;
+      }
+
+      #welcome-screen {
+        text-align: center;
+        color: var(--text-muted);
+        max-width: 600px;
+        padding: 2rem;
+      }
+
+      #study-screen {
+        display: none;
+        width: 100%;
+        max-width: 800px;
+        background: var(--card-bg);
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        text-align: center;
+        position: relative;
+      }
+
+      .study-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .study-header-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .mode-badge {
+        background: #333;
+        color: #ddd;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+      }
+      body.light-mode .mode-badge {
+        background: #eee;
+        color: #555;
+      }
+
+      /* Content */
+      .phrase-source {
+        font-size: 1.4rem;
+        margin-bottom: 2rem;
+        line-height: 1.4;
+        color: var(--text-main);
+        font-weight: 500;
+      }
+
+      .input-area {
+        width: 100%;
+        margin-bottom: 1.5rem;
+      }
+
+      #user-input {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1.1rem;
+        border: 2px solid #444;
+        background-color: #2c2c2c;
+        color: #fff;
+        border-radius: 8px;
+        outline: none;
+        font-family: var(--font-family);
+        transition: border-color 0.2s;
+        resize: none;
+        height: 100px;
+      }
+
+      body.light-mode #user-input {
+        border: 2px solid #e0e0e0;
+        background-color: #fff;
+        color: #333;
+      }
+
+      #user-input:focus {
+        border-color: var(--primary);
+      }
+      #user-input:disabled {
+        opacity: 0.7;
+      }
+
+      /* Feedback / Diff Area */
+      #feedback-area {
+        margin-top: 1rem;
+        margin-bottom: 2rem;
+        text-align: left;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1.5rem;
+        border-radius: 8px;
+        display: none;
+      }
+      body.light-mode #feedback-area {
+        background: #f8f9fa;
+      }
+
+      .diff-word {
+        display: inline-block;
+        margin-right: 4px;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-weight: 600;
+      }
+
+      .diff-correct {
+        background-color: rgba(39, 174, 96, 0.3);
+        color: #2ecc71;
+      }
+      .diff-wrong {
+        background-color: rgba(230, 126, 34, 0.3);
+        color: #e67e22;
+        text-decoration: underline;
+        text-decoration-style: wavy;
+      }
+      .diff-missing {
+        background-color: rgba(41, 128, 185, 0.3);
+        color: #3498db;
+        border: 1px dashed #3498db;
+      }
+
+      body.light-mode .diff-correct {
+        background-color: #d4efdf;
+        color: #27ae60;
+      }
+      body.light-mode .diff-wrong {
+        background-color: #fdebd0;
+        color: #d35400;
+      }
+      body.light-mode .diff-missing {
+        background-color: #d6eaf8;
+        color: #2980b9;
+      }
+
+      .original-reference {
+        margin-top: 1rem;
+        font-size: 1.2rem;
+        color: var(--text-muted);
+        border-top: 1px solid #444;
+        padding-top: 0.5rem;
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+      .original-reference:hover {
+        color: var(--primary);
+      }
+      .playing-audio {
+        text-shadow: 0 0 5px var(--primary);
+      }
+      body.light-mode .original-reference {
+        border-top: 1px solid #eee;
+      }
+
+      /* Controls Footer */
+      .controls {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .action-group {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      /* Edit Modal */
+      dialog {
+        background: var(--card-bg);
+        color: var(--text-main);
+        border: 1px solid #555;
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 90%;
+        width: 500px;
+        margin: auto;
+      }
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.7);
+      }
+      body.light-mode dialog {
+        border: 1px solid #ccc;
+      }
+
+      .modal-field {
+        margin-bottom: 15px;
+      }
+      .modal-field label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+        color: var(--primary);
+        font-weight: bold;
+      }
+      .modal-field textarea {
+        width: 100%;
+        height: 80px;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #555;
+        background: var(--bg-color);
+        color: var(--text-main);
+        resize: vertical;
+      }
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      /* Toast */
+      #toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+        z-index: 200;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+      .favorite-active {
+        color: #f1c40f !important;
+        border-color: #f1c40f !important;
+      }
+
+      /* Mobile Adjustments */
+      @media (max-width: 600px) {
+        header.menu-hidden .setup-container {
+          display: none;
+        }
+        header.menu-hidden {
+          padding: 0.5rem 1rem;
+          border-bottom: 1px solid #333;
+        }
+        header {
+          padding: 1rem;
+          justify-content: center;
+          position: sticky;
+          top: 0;
+        }
+        .setup-container {
+          width: 100%;
+          justify-content: center;
+        }
+        .btn {
+          flex-grow: 1;
+          justify-content: center;
+        }
+        .study-header {
+          flex-direction: row;
+        }
+        #user-input {
+          font-size: 16px;
+        }
+        #study-screen {
+          margin-top: 20px;
+          margin-bottom: 100px;
+        }
+        #settings-panel {
+          left: 5%;
+          right: 5%;
+          width: 90%;
+          top: 60px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand-area">
+        <h1>
+          Bidirectional<span style="color: var(--primary)">Translation</span>
+        </h1>
+        <button
+          id="btn-settings"
+          class="btn btn-outline"
+          style="padding: 4px 10px; min-width: 40px; margin-left: 5px"
+          title="Configurações e Exportação"
+        >
+          ⚙️
+        </button>
+      </div>
+
+      <!-- Painel de Configurações / Exportação -->
+      <div id="settings-panel">
+        <h4>Aparência</h4>
+        <div class="settings-group">
+          <button id="btn-theme" class="btn btn-outline" style="width: 100%">
+            ◑ Alternar Tema
+          </button>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0" />
+
+        <h4>Progresso (JSON)</h4>
+        <div class="settings-group">
+          <button id="btn-export" class="btn btn-outline" disabled>
+            💾 Salvar Progresso (JSON)
+          </button>
+          <button class="btn btn-outline" id="btn-import-trigger">
+            📥 Carregar Progresso
+          </button>
+          <input
+            type="file"
+            id="file-import"
+            accept=".json"
+            style="display: none"
+          />
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0" />
+
+        <h4>Arquivos Editados (TXT)</h4>
+        <p
+          style="
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+          "
+        >
+          Baixe os arquivos com as correções feitas:
+        </p>
+        <div class="settings-group">
+          <button id="btn-dl-source" class="btn btn-outline" disabled>
+            📄 Baixar Fonte (.txt)
+          </button>
+          <button id="btn-dl-target" class="btn btn-outline" disabled>
+            📄 Baixar Alvo (.txt)
+          </button>
+        </div>
+      </div>
+
+      <div class="setup-container">
+        <div class="file-input-wrapper">
+          <button class="btn btn-outline">📄 Fonte</button>
+          <input type="file" id="file-source" accept=".txt,.srt" />
+        </div>
+        <div class="file-input-wrapper">
+          <button class="btn btn-outline">📄 Alvo</button>
+          <input type="file" id="file-target" accept=".txt,.srt" />
+        </div>
+        <div class="file-input-wrapper">
+          <button class="btn btn-outline">📂 Áudio</button>
+          <input
+            type="file"
+            id="folder-audio"
+            webkitdirectory
+            directory
+            multiple
+          />
+        </div>
+        <button id="btn-start" class="btn" disabled>Iniciar</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Welcome / Empty State -->
+      <div id="welcome-screen">
+        <h2>Assistente de Tradução Bidirecional</h2>
+        <p style="margin-top: 10px">
+          Carregue seus arquivos (.txt ou .srt) para começar.
+        </p>
+        <p style="margin-top: 20px; font-size: 0.85rem; opacity: 0.7">
+          Use o botão ⚙️ para baixar os arquivos corrigidos caso faça edições.
+        </p>
+      </div>
+
+      <!-- Study Card -->
+      <div id="study-screen">
+        <div class="study-header">
+          <span id="progress-indicator">Frase 0 / 0</span>
+
+          <div class="study-header-right">
+            <span id="mode-display" class="mode-badge">Sequencial</span>
+            <button
+              id="btn-edit-phrase"
+              class="btn btn-outline"
+              style="padding: 2px 8px; font-size: 0.9rem"
+              title="Editar Frase Atual"
+            >
+              ✏️
+            </button>
+            <button
+              id="btn-toggle-fav"
+              class="btn btn-outline"
+              style="padding: 2px 8px; font-size: 0.9rem"
+            >
+              ★
+            </button>
+          </div>
+        </div>
+
+        <div id="phrase-display" class="phrase-source">
+          <!-- Frase em PT aparece aqui -->
+        </div>
+
+        <div class="input-area">
+          <textarea
+            id="user-input"
+            placeholder="Digite a tradução..."
+            spellcheck="false"
+            autocomplete="off"
+          ></textarea>
+        </div>
+
+        <div id="feedback-area">
+          <div
+            id="diff-container"
+            style="font-size: 1.1rem; line-height: 1.6"
+          ></div>
+          <div id="original-ref" class="original-reference"></div>
+        </div>
+
+        <div class="controls">
+          <div class="action-group">
+            <button id="btn-check" class="btn">Verificar (Enter)</button>
+            <button id="btn-next" class="btn hidden">Próxima →</button>
+          </div>
+
+          <div class="action-group" style="margin-left: auto">
+            <button
+              id="btn-toggle-mode"
+              class="btn btn-outline"
+              title="Alternar Sequencial/Aleatório"
+            >
+              🔀
+            </button>
+            <button
+              id="btn-exclude"
+              class="btn btn-danger"
+              title="Excluir frase"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Modal de Edição -->
+    <dialog id="edit-modal">
+      <h3 style="margin-bottom: 20px">Editar Frase</h3>
+      <div class="modal-field">
+        <label>Fonte (O que você vê):</label>
+        <textarea id="edit-source"></textarea>
+      </div>
+      <div class="modal-field">
+        <label>Alvo (A resposta correta):</label>
+        <textarea id="edit-target"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-cancel-edit" class="btn btn-outline">Cancelar</button>
+        <button id="btn-save-edit" class="btn">Salvar Alterações</button>
+      </div>
+    </dialog>
+
+    <div id="toast">Notificação</div>
+
+    <script>
+      /**
+       * StudySync v10 - Com Edição e Exportação de Texto
+       */
+
+      // --- 1. Funções Utilitárias ---
+      function generateContentHash(str) {
+        let hash = 0;
+        if (!str || str.length === 0) return "0";
+        for (let i = 0; i < str.length; i++) {
+          const char = str.charCodeAt(i);
+          hash = (hash << 5) - hash + char;
+          hash |= 0;
+        }
+        return hash.toString();
+      }
+
+      async function readFile(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = reject;
+          reader.readAsText(file);
+        });
+      }
+
+      function parseSRT(text) {
+        const blocks = text.trim().replace(/\r\n/g, "\n").split("\n\n");
+        return blocks
+          .map((block) => {
+            const lines = block.split("\n");
+            const textLines = lines.filter(
+              (line) => !line.match(/^\d+$/) && !line.includes("-->")
+            );
+            let cleanText = textLines.join(" ").replace(/<[^>]*>/g, "");
+            return cleanText.trim();
+          })
+          .filter((t) => t.length > 0);
+      }
+
+      function parseTXT(text) {
+        return text
+          .trim()
+          .replace(/\r\n/g, "\n")
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.length > 0);
+      }
+
+      function playCurrentAudio() {
+        const item = state.data[state.currentIndex];
+        if (item && item.audioSrc) {
+          const audio = new Audio(item.audioSrc);
+          audio.play().catch((e) => console.log("Erro ao reproduzir:", e));
+          els.originalRef.classList.add("playing-audio");
+          audio.onended = () =>
+            els.originalRef.classList.remove("playing-audio");
+        }
+      }
+
+      function showToast(msg, duration = 3000) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.style.opacity = "1";
+        setTimeout(() => (t.style.opacity = "0"), duration);
+      }
+
+      // Função para baixar texto puro
+      function downloadTextFile(contentArray, filename) {
+        const textContent = contentArray.join("\n");
+        const blob = new Blob([textContent], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      // --- 2. Estado Global ---
+      const state = {
+        data: [],
+        currentIndex: 0,
+        isRandom: false,
+        isChecked: false,
+        filesLoaded: { source: false, target: false },
+        rawFiles: { source: null, target: null },
+        meta: {
+          sourceName: "",
+          targetName: "",
+          sourceHash: "",
+          targetHash: "",
+        },
+        currentLessonKey: null,
+        globalHistory: {},
+      };
+
+      // --- 3. Elementos do DOM ---
+      const els = {
+        fileSource: document.getElementById("file-source"),
+        fileTarget: document.getElementById("file-target"),
+        fileImport: document.getElementById("file-import"),
+        folderAudio: document.getElementById("folder-audio"),
+        btnStart: document.getElementById("btn-start"),
+        btnExport: document.getElementById("btn-export"),
+        btnImportTrigger: document.getElementById("btn-import-trigger"),
+        btnTheme: document.getElementById("btn-theme"),
+        btnDlSource: document.getElementById("btn-dl-source"),
+        btnDlTarget: document.getElementById("btn-dl-target"),
+
+        header: document.querySelector("header"),
+        btnSettings: document.getElementById("btn-settings"),
+        settingsPanel: document.getElementById("settings-panel"),
+
+        welcomeScreen: document.getElementById("welcome-screen"),
+        studyScreen: document.getElementById("study-screen"),
+
+        progress: document.getElementById("progress-indicator"),
+        modeBadge: document.getElementById("mode-display"),
+        phraseDisplay: document.getElementById("phrase-display"),
+        userInput: document.getElementById("user-input"),
+        feedbackArea: document.getElementById("feedback-area"),
+        diffContainer: document.getElementById("diff-container"),
+        originalRef: document.getElementById("original-ref"),
+
+        btnCheck: document.getElementById("btn-check"),
+        btnNext: document.getElementById("btn-next"),
+        btnFav: document.getElementById("btn-toggle-fav"),
+        btnEdit: document.getElementById("btn-edit-phrase"),
+        btnExclude: document.getElementById("btn-exclude"),
+        btnToggleMode: document.getElementById("btn-toggle-mode"),
+
+        // Modal Elements
+        editModal: document.getElementById("edit-modal"),
+        editSource: document.getElementById("edit-source"),
+        editTarget: document.getElementById("edit-target"),
+        btnSaveEdit: document.getElementById("btn-save-edit"),
+        btnCancelEdit: document.getElementById("btn-cancel-edit"),
+      };
+
+      // --- 4. Lógica de Upload ---
+      async function handleFileUpload(type, file) {
+        if (!file) return;
+        try {
+          const content = await readFile(file);
+          const isSrt = file.name.toLowerCase().endsWith(".srt");
+          const lines = isSrt ? parseSRT(content) : parseTXT(content);
+
+          state.rawFiles[type] = lines;
+          state.filesLoaded[type] = true;
+
+          const btn =
+            type === "source"
+              ? els.fileSource.previousElementSibling
+              : els.fileTarget.previousElementSibling;
+          btn.innerHTML = `✅ ${file.name.substring(0, 15)}...`;
+          btn.classList.add("btn-loaded");
+
+          if (state.filesLoaded.source && state.filesLoaded.target) {
+            els.btnStart.disabled = false;
+            showToast("Arquivos prontos! Clique em Iniciar.");
+          }
+        } catch (e) {
+          console.error(e);
+          showToast("Erro ao ler arquivo.");
+        }
+      }
+
+      async function handleAudioFolder(files) {
+        if (!state.data || state.data.length === 0) {
+          alert("Carregue e inicie as frases antes de carregar o áudio.");
+          return;
+        }
+        const fileArray = Array.from(files).filter((f) =>
+          f.name.toLowerCase().endsWith(".mp3")
+        );
+        if (fileArray.length === 0) {
+          showToast("Nenhum MP3 encontrado.");
+          return;
+        }
+
+        const collator = new Intl.Collator(undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+        fileArray.sort((a, b) => collator.compare(a.name, b.name));
+
+        let count = 0;
+        state.data.forEach((item, index) => {
+          if (fileArray[index]) {
+            item.audioSrc = URL.createObjectURL(fileArray[index]);
+            count++;
+          }
+        });
+
+        const btn = els.folderAudio.previousElementSibling;
+        btn.innerHTML = `✅ ${count} Áudios`;
+        btn.classList.add("btn-loaded");
+        showToast(`${count} áudios vinculados!`);
+      }
+
+      function restoreLessonFromHistory(lessonData) {
+        if (lessonData.favorites) {
+          lessonData.favorites.forEach((id) => {
+            if (state.data[id]) state.data[id].favorite = true;
+          });
+        }
+        if (lessonData.excluded) {
+          lessonData.excluded.forEach((id) => {
+            if (state.data[id]) state.data[id].excluded = true;
+          });
+        }
+        if (lessonData.lastIndex !== undefined)
+          state.currentIndex = lessonData.lastIndex;
+        showToast(`Recuperado: ${lessonData.name || "Dados Salvos"}`);
+      }
+
+      function initData() {
+        try {
+          const source = state.rawFiles.source;
+          const target = state.rawFiles.target;
+          if (!source || !target) return;
+
+          if (source.length !== target.length) {
+            alert(
+              `Aviso: Fontes diferentes (${source.length} vs ${target.length}).`
+            );
+          }
+
+          state.meta.sourceHash = generateContentHash(source.join(""));
+          state.meta.targetHash = generateContentHash(target.join(""));
+          if (els.fileSource.files[0])
+            state.meta.sourceName = els.fileSource.files[0].name;
+          if (els.fileTarget.files[0])
+            state.meta.targetName = els.fileTarget.files[0].name;
+
+          state.currentLessonKey = `${state.meta.sourceHash}_${state.meta.targetHash}`;
+
+          state.data = [];
+          const length = Math.min(source.length, target.length);
+          for (let i = 0; i < length; i++) {
+            state.data.push({
+              id: i,
+              pt: source[i],
+              en: target[i],
+              favorite: false,
+              excluded: false,
+            });
+          }
+
+          if (
+            state.globalHistory &&
+            state.globalHistory[state.currentLessonKey]
+          ) {
+            restoreLessonFromHistory(
+              state.globalHistory[state.currentLessonKey]
+            );
+          }
+
+          els.btnExport.disabled = false;
+          els.btnDlSource.disabled = false;
+          els.btnDlTarget.disabled = false;
+          startSession();
+        } catch (error) {
+          console.error("Init Error:", error);
+          alert("Erro ao iniciar.");
+        }
+      }
+
+      function startSession() {
+        if (window.innerWidth <= 600) els.header.classList.add("menu-hidden");
+        els.welcomeScreen.style.display = "none";
+        els.studyScreen.style.display = "block";
+
+        if (
+          !state.data[state.currentIndex] ||
+          state.data[state.currentIndex].excluded
+        ) {
+          const next = getNextIndex();
+          if (next !== -1) state.currentIndex = next;
+        }
+        loadCard(state.currentIndex);
+      }
+
+      // --- 5. Core Study Logic ---
+      function getNextIndex() {
+        const eligible = state.data
+          .filter((item) => !item.excluded)
+          .map((item) => item.id);
+        if (eligible.length === 0) return -1;
+        if (state.isRandom) {
+          return eligible[Math.floor(Math.random() * eligible.length)];
+        } else {
+          const next = eligible.find((id) => id > state.currentIndex);
+          return next !== undefined ? next : eligible[0];
+        }
+      }
+
+      function loadCard(index = null) {
+        if (index === null || index === -1) {
+          index = getNextIndex();
+          if (index === -1) return alert("Fim da lista!");
+        }
+        state.currentIndex = index;
+        const item = state.data[state.currentIndex];
+
+        els.phraseDisplay.textContent = item.pt;
+        els.userInput.value = "";
+        els.userInput.disabled = false;
+        els.userInput.focus();
+
+        els.feedbackArea.style.display = "none";
+        els.diffContainer.innerHTML = "";
+        els.originalRef.textContent = "";
+
+        els.btnCheck.classList.remove("hidden");
+        els.btnNext.classList.add("hidden");
+        state.isChecked = false;
+        updateMetaDisplay();
+      }
+
+      function updateMetaDisplay() {
+        const item = state.data[state.currentIndex];
+        els.progress.textContent = `Frase ${state.currentIndex + 1} / ${
+          state.data.length
+        }`;
+        if (item.favorite) els.btnFav.classList.add("favorite-active");
+        else els.btnFav.classList.remove("favorite-active");
+      }
+
+      function checkAnswer() {
+        if (state.isChecked) return;
+        const item = state.data[state.currentIndex];
+        const rawUser = els.userInput.value;
+        const rawTarget = item.en;
+
+        const normalize = (str) =>
+          str
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, "")
+            .trim();
+        const userWordsNorm = normalize(rawUser)
+          .split(/\s+/)
+          .filter((w) => w);
+        const targetWordsNorm = normalize(rawTarget)
+          .split(/\s+/)
+          .filter((w) => w);
+        const userWordsDisplay = rawUser.trim().split(/\s+/);
+        const targetWordsDisplay = rawTarget.trim().split(/\s+/);
+
+        let html = "";
+        let u = 0;
+        let t = 0;
+
+        while (u < userWordsNorm.length || t < targetWordsNorm.length) {
+          const userW = userWordsNorm[u];
+          const targetW = targetWordsNorm[t];
+          const dispUser =
+            userWordsDisplay[u] !== undefined
+              ? userWordsDisplay[u]
+              : userW || "";
+          const dispTarget =
+            targetWordsDisplay[t] !== undefined
+              ? targetWordsDisplay[t]
+              : targetW || "";
+
+          if (userW === targetW) {
+            html += `<span class="diff-word diff-correct">${dispTarget}</span>`;
+            u++;
+            t++;
+          } else if (userW && targetWordsNorm.slice(t).includes(userW)) {
+            html += `<span class="diff-word diff-missing">${dispTarget}</span>`;
+            t++;
+          } else if (userW) {
+            html += `<span class="diff-word diff-wrong" title="Digitado: ${dispUser}">${dispUser}</span>`;
+            u++;
+          } else {
+            html += `<span class="diff-word diff-missing">${dispTarget}</span>`;
+            t++;
+          }
+        }
+
+        els.diffContainer.innerHTML = html;
+        els.originalRef.title = "Clique para ouvir o áudio";
+        els.originalRef.textContent = item.en;
+        els.feedbackArea.style.display = "block";
+
+        els.userInput.disabled = true;
+        els.btnCheck.classList.add("hidden");
+        els.btnNext.classList.remove("hidden");
+        els.btnNext.focus();
+        state.isChecked = true;
+        playCurrentAudio();
+      }
+
+      function nextPhrase() {
+        const nextId = getNextIndex();
+        if (nextId === -1) return alert("Fim!");
+        if (!state.isRandom && nextId <= state.currentIndex) {
+          if (confirm("Você completou todas as frases! Deseja reiniciar?"))
+            loadCard(nextId);
+          return;
+        }
+        loadCard(nextId);
+      }
+
+      // --- 6. Edição e Exportação (Feature Nova) ---
+
+      // Abrir Modal
+      els.btnEdit.addEventListener("click", () => {
+        const item = state.data[state.currentIndex];
+        if (!item) return;
+
+        els.editSource.value = item.pt;
+        els.editTarget.value = item.en;
+        els.editModal.showModal();
+      });
+
+      // Cancelar Edição
+      els.btnCancelEdit.addEventListener("click", () => {
+        els.editModal.close();
+      });
+
+      // Salvar Edição
+      els.btnSaveEdit.addEventListener("click", () => {
+        const newPt = els.editSource.value.trim();
+        const newEn = els.editTarget.value.trim();
+
+        if (!newPt || !newEn) {
+          alert("Os campos não podem ficar vazios.");
+          return;
+        }
+
+        // Atualiza o estado
+        state.data[state.currentIndex].pt = newPt;
+        state.data[state.currentIndex].en = newEn;
+
+        showToast("Frase atualizada! Lembre-se de baixar os arquivos depois.");
+        els.editModal.close();
+
+        // Recarrega o card atual para refletir as mudanças
+        loadCard(state.currentIndex);
+      });
+
+      // Exportar Arquivos de Texto (Corrigidos)
+      els.btnDlSource.addEventListener("click", () => {
+        const content = state.data.map((d) => d.pt);
+        const name = state.meta.sourceName || "source_edited.txt";
+        downloadTextFile(content, "EDITED_" + name.replace(".srt", ".txt"));
+      });
+
+      els.btnDlTarget.addEventListener("click", () => {
+        const content = state.data.map((d) => d.en);
+        const name = state.meta.targetName || "target_edited.txt";
+        downloadTextFile(content, "EDITED_" + name.replace(".srt", ".txt"));
+      });
+
+      // --- 7. Persistência e Eventos ---
+      function exportData() {
+        if (!state.currentLessonKey) return;
+        const currentLessonData = {
+          name: `${state.meta.sourceName} ↔ ${state.meta.targetName}`,
+          lastUpdated: new Date().toISOString(),
+          lastIndex: state.currentIndex,
+          favorites: state.data.filter((x) => x.favorite).map((x) => x.id),
+          excluded: state.data.filter((x) => x.excluded).map((x) => x.id),
+        };
+        state.globalHistory[state.currentLessonKey] = currentLessonData;
+        const masterFile = {
+          app: "StudySync",
+          version: "2.0",
+          lessons: state.globalHistory,
+        };
+        const dataStr =
+          "data:text/json;charset=utf-8," +
+          encodeURIComponent(JSON.stringify(masterFile, null, 2));
+        const dl = document.createElement("a");
+        dl.setAttribute("href", dataStr);
+        dl.setAttribute("download", "studysync_master.json");
+        document.body.appendChild(dl);
+        dl.click();
+        dl.remove();
+      }
+
+      async function importData(file) {
+        try {
+          const text = await readFile(file);
+          const json = JSON.parse(text);
+          state.globalHistory = json.lessons || {};
+          showToast(`Histórico carregado.`);
+          if (
+            state.currentLessonKey &&
+            state.globalHistory[state.currentLessonKey]
+          ) {
+            restoreLessonFromHistory(
+              state.globalHistory[state.currentLessonKey]
+            );
+            loadCard(state.currentIndex);
+          }
+        } catch (e) {
+          console.error(e);
+          alert("Erro JSON.");
+        }
+      }
+
+      els.btnTheme.addEventListener("click", () =>
+        document.body.classList.toggle("light-mode")
+      );
+      els.fileSource.addEventListener("change", (e) =>
+        handleFileUpload("source", e.target.files[0])
+      );
+      els.fileTarget.addEventListener("change", (e) =>
+        handleFileUpload("target", e.target.files[0])
+      );
+
+      els.btnSettings.addEventListener("click", (e) => {
+        e.stopPropagation();
+        els.settingsPanel.style.display =
+          els.settingsPanel.style.display === "block" ? "none" : "block";
+      });
+      document.addEventListener("click", (e) => {
+        if (
+          !els.settingsPanel.contains(e.target) &&
+          e.target !== els.btnSettings
+        ) {
+          els.settingsPanel.style.display = "none";
+        }
+      });
+
+      els.folderAudio.addEventListener("change", (e) =>
+        handleAudioFolder(e.target.files)
+      );
+      els.originalRef.addEventListener("click", () => {
+        if (state.isChecked) playCurrentAudio();
+      });
+      els.btnStart.addEventListener("click", initData);
+      els.btnCheck.addEventListener("click", checkAnswer);
+      els.btnNext.addEventListener("click", nextPhrase);
+      els.btnFav.addEventListener("click", () => {
+        state.data[state.currentIndex].favorite =
+          !state.data[state.currentIndex].favorite;
+        updateMetaDisplay();
+      });
+      els.btnExclude.addEventListener("click", () => {
+        if (!confirm("Excluir frase?")) return;
+        state.data[state.currentIndex].excluded = true;
+        nextPhrase();
+      });
+      els.btnToggleMode.addEventListener("click", () => {
+        state.isRandom = !state.isRandom;
+        els.modeBadge.textContent = state.isRandom ? "Aleatório" : "Sequencial";
+      });
+
+      els.userInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          checkAnswer();
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (els.studyScreen.style.display !== "none" && !els.editModal.open) {
+          if (state.isChecked && e.key === "Enter") {
+            e.preventDefault();
+            nextPhrase();
+          }
+        }
+      });
+
+      els.btnExport.addEventListener("click", exportData);
+      els.btnImportTrigger.addEventListener("click", () =>
+        els.fileImport.click()
+      );
+      els.fileImport.addEventListener("change", (e) =>
+        importData(e.target.files[0])
+      );
+    </script>
+  </body>
+</html>
