@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -19,8 +19,9 @@
         --missing: #2980b9;
         --border-radius: 12px;
         --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-          Roboto, sans-serif;
+        --font-family:
+          'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          sans-serif;
 
         --btn-loaded-bg: #2ecc71;
         --btn-loaded-text: #000000;
@@ -58,7 +59,9 @@
         flex-direction: column;
         overflow-y: auto;
         overflow-x: hidden;
-        transition: background-color 0.3s, color 0.3s;
+        transition:
+          background-color 0.3s,
+          color 0.3s;
       }
 
       /* --- Header --- */
@@ -98,6 +101,49 @@
         position: relative;
         overflow: hidden;
         display: inline-block;
+      }
+
+      .range-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: var(--card-bg);
+        border: 1px solid #444;
+        border-radius: 8px;
+        padding: 0.35rem 0.6rem;
+      }
+      body.light-mode .range-wrapper {
+        border-color: #ddd;
+      }
+
+      .range-wrapper label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .range-input {
+        width: 70px;
+        padding: 0.4rem 0.45rem;
+        border-radius: 6px;
+        border: 1px solid #555;
+        background: var(--bg-color);
+        color: var(--text-main);
+        font-family: var(--font-family);
+        font-size: 0.9rem;
+      }
+      body.light-mode .range-input {
+        border-color: #ddd;
+      }
+
+      .range-btn {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.85rem;
+        white-space: nowrap;
+      }
+
+      .range-separator {
+        color: var(--text-muted);
+        font-size: 0.85rem;
       }
 
       .btn {
@@ -149,7 +195,7 @@
         color: white;
       }
 
-      input[type="file"] {
+      input[type='file'] {
         font-size: 100px;
         position: absolute;
         left: 0;
@@ -558,7 +604,7 @@
           <input type="file" id="file-target" accept=".txt,.srt" />
         </div>
         <div class="file-input-wrapper">
-          <button class="btn btn-outline">📂 Áudio</button>
+          <button class="btn btn-outline">📂 Áudio (opcional)</button>
           <input
             type="file"
             id="folder-audio"
@@ -566,6 +612,36 @@
             directory
             multiple
           />
+        </div>
+        <div class="range-wrapper">
+          <label for="range-start">Frases</label>
+          <input
+            type="number"
+            id="range-start"
+            class="range-input"
+            min="1"
+            step="1"
+            value="1"
+            disabled
+          />
+          <span class="range-separator">até</span>
+          <input
+            type="number"
+            id="range-end"
+            class="range-input"
+            min="1"
+            step="1"
+            value="1"
+            disabled
+          />
+          <button
+            type="button"
+            id="btn-range-all"
+            class="btn btn-outline range-btn"
+            disabled
+          >
+            Todas
+          </button>
         </div>
         <button id="btn-start" class="btn" disabled>Iniciar</button>
       </div>
@@ -576,7 +652,11 @@
       <div id="welcome-screen">
         <h2>Assistente de Tradução Bidirecional</h2>
         <p style="margin-top: 10px">
-          Carregue seus arquivos (.txt ou .srt) para começar.
+          Carregue os arquivos de fonte e alvo (.txt ou .srt) para começar.
+        </p>
+        <p style="margin-top: 10px">
+          Se quiser, você também pode selecionar a pasta de áudio ao mesmo tempo
+          antes de clicar em Iniciar.
         </p>
         <p style="margin-top: 20px; font-size: 0.85rem; opacity: 0.7">
           Use o botão ⚙️ para baixar os arquivos corrigidos caso faça edições.
@@ -631,8 +711,11 @@
 
         <div class="controls">
           <div class="action-group">
+            <button id="btn-prev" class="btn" title="Frase anterior">←</button>
             <button id="btn-check" class="btn">Verificar (Enter)</button>
-            <button id="btn-next" class="btn hidden">Próxima →</button>
+            <button id="btn-next" class="btn hidden" title="Próxima frase">
+              Próxima →
+            </button>
           </div>
 
           <div class="action-group" style="margin-left: auto">
@@ -682,7 +765,7 @@
       // --- 1. Funções Utilitárias ---
       function generateContentHash(str) {
         let hash = 0;
-        if (!str || str.length === 0) return "0";
+        if (!str || str.length === 0) return '0';
         for (let i = 0; i < str.length; i++) {
           const char = str.charCodeAt(i);
           hash = (hash << 5) - hash + char;
@@ -701,14 +784,14 @@
       }
 
       function parseSRT(text) {
-        const blocks = text.trim().replace(/\r\n/g, "\n").split("\n\n");
+        const blocks = text.trim().replace(/\r\n/g, '\n').split('\n\n');
         return blocks
           .map((block) => {
-            const lines = block.split("\n");
+            const lines = block.split('\n');
             const textLines = lines.filter(
-              (line) => !line.match(/^\d+$/) && !line.includes("-->")
+              (line) => !line.match(/^\d+$/) && !line.includes('-->')
             );
-            let cleanText = textLines.join(" ").replace(/<[^>]*>/g, "");
+            let cleanText = textLines.join(' ').replace(/<[^>]*>/g, '');
             return cleanText.trim();
           })
           .filter((t) => t.length > 0);
@@ -717,36 +800,284 @@
       function parseTXT(text) {
         return text
           .trim()
-          .replace(/\r\n/g, "\n")
-          .split("\n")
+          .replace(/\r\n/g, '\n')
+          .split('\n')
           .map((l) => l.trim())
           .filter((l) => l.length > 0);
       }
 
-      function playCurrentAudio() {
-        const item = state.data[state.currentIndex];
-        if (item && item.audioSrc) {
-          const audio = new Audio(item.audioSrc);
-          audio.play().catch((e) => console.log("Erro ao reproduzir:", e));
-          els.originalRef.classList.add("playing-audio");
-          audio.onended = () =>
-            els.originalRef.classList.remove("playing-audio");
+      function normalizeApostrophes(str) {
+        return str.replace(/['’‘ʼ´`]/g, "'");
+      }
+
+      function tokenizeWords(str) {
+        return (
+          normalizeApostrophes(str)
+            .normalize('NFC')
+            .trim()
+            .match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)*/gu) || []
+        );
+      }
+
+      function normalizeWord(word) {
+        return normalizeApostrophes(word)
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/'/g, '')
+          .toLowerCase();
+      }
+
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, (ch) => {
+          switch (ch) {
+            case '&':
+              return '&amp;';
+            case '<':
+              return '&lt;';
+            case '>':
+              return '&gt;';
+            case '"':
+              return '&quot;';
+            case "'":
+              return '&#39;';
+            default:
+              return ch;
+          }
+        });
+      }
+
+      /**
+       * Alinhamento global por tokens.
+       *
+       * target = frase correta
+       * user   = frase digitada
+       *
+       * Operações:
+       * - match   : token do alvo alinhado ao token do usuário
+       * - missing : token existe no alvo, mas faltou no usuário
+       * - extra   : token foi digitado pelo usuário, mas não existe naquele ponto do alvo
+       *
+       * Observação:
+       * Não usamos substituição explícita aqui. Em termos de feedback pedagógico,
+       * isso costuma produzir um resultado mais estável para frases curtas e evita
+       * emparelhar à força palavras diferentes só porque estão "na mesma posição".
+       */
+      function alignTokenSequences(targetWordsDisplay, userWordsDisplay) {
+        const targetWordsNorm = targetWordsDisplay.map(normalizeWord);
+        const userWordsNorm = userWordsDisplay.map(normalizeWord);
+
+        const m = targetWordsNorm.length;
+        const n = userWordsNorm.length;
+
+        // dp[i][j] = menor custo para alinhar:
+        // target[0..i-1] com user[0..j-1]
+        const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+        for (let i = 1; i <= m; i++) dp[i][0] = i;
+        for (let j = 1; j <= n; j++) dp[0][j] = j;
+
+        for (let i = 1; i <= m; i++) {
+          for (let j = 1; j <= n; j++) {
+            if (targetWordsNorm[i - 1] === userWordsNorm[j - 1]) {
+              dp[i][j] = dp[i - 1][j - 1];
+            } else {
+              // Sem substituição explícita:
+              // - missing => consumir token do alvo
+              // - extra   => consumir token do usuário
+              dp[i][j] = Math.min(
+                dp[i - 1][j] + 1, // missing
+                dp[i][j - 1] + 1 // extra
+              );
+            }
+          }
         }
+
+        const ops = [];
+        let i = m;
+        let j = n;
+
+        while (i > 0 || j > 0) {
+          const targetNorm = i > 0 ? targetWordsNorm[i - 1] : null;
+          const userNorm = j > 0 ? userWordsNorm[j - 1] : null;
+
+          // Match exato após normalização
+          if (
+            i > 0 &&
+            j > 0 &&
+            targetNorm === userNorm &&
+            dp[i][j] === dp[i - 1][j - 1]
+          ) {
+            ops.push({
+              type: 'match',
+              target: targetWordsDisplay[i - 1],
+              user: userWordsDisplay[j - 1],
+            });
+            i--;
+            j--;
+            continue;
+          }
+
+          // Em empate, preferimos "extra" antes de "missing".
+          // Isso ajuda em casos como:
+          // alvo: Le problème c'est ...
+          // user: C'est problème c'est ...
+          // gerando: [C'est=extra] [Le=missing] [problème=match] ...
+          if (j > 0 && dp[i][j] === dp[i][j - 1] + 1) {
+            ops.push({
+              type: 'extra',
+              user: userWordsDisplay[j - 1],
+            });
+            j--;
+            continue;
+          }
+
+          if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) {
+            ops.push({
+              type: 'missing',
+              target: targetWordsDisplay[i - 1],
+            });
+            i--;
+            continue;
+          }
+
+          // Fallback defensivo:
+          // se por algum motivo chegarmos aqui, tratamos como extra ou missing
+          if (j > 0) {
+            ops.push({
+              type: 'extra',
+              user: userWordsDisplay[j - 1],
+            });
+            j--;
+          } else if (i > 0) {
+            ops.push({
+              type: 'missing',
+              target: targetWordsDisplay[i - 1],
+            });
+            i--;
+          }
+        }
+
+        return ops.reverse();
+      }
+
+      function renderAlignedDiff(ops) {
+        return ops
+          .map((op) => {
+            if (op.type === 'match') {
+              return `<span class="diff-word diff-correct">${escapeHtml(
+                op.target
+              )}</span>`;
+            }
+
+            if (op.type === 'missing') {
+              return `<span class="diff-word diff-missing">${escapeHtml(
+                op.target
+              )}</span>`;
+            }
+
+            if (op.type === 'extra') {
+              return `<span class="diff-word diff-wrong" title="Digitado: ${escapeHtml(
+                op.user
+              )}">${escapeHtml(op.user)}</span>`;
+            }
+
+            return '';
+          })
+          .join('');
+      }
+
+      function stopAndCleanupCurrentAudio() {
+        if (!state.currentAudio) return;
+
+        state.currentAudio.pause();
+        state.currentAudio.currentTime = 0;
+        state.currentAudio.onended = null;
+        state.currentAudio.onpause = null;
+        state.currentAudio.onplay = null;
+        state.currentAudio = null;
+        els.originalRef.classList.remove('playing-audio');
+      }
+
+      function getCurrentItemAudioSrc() {
+        const item = state.data[state.currentIndex];
+        return item && item.audioSrc ? item.audioSrc : null;
+      }
+
+      function ensureCurrentAudio() {
+        const audioSrc = getCurrentItemAudioSrc();
+        if (!audioSrc) return null;
+
+        if (!state.currentAudio || state.currentAudio.src !== audioSrc) {
+          stopAndCleanupCurrentAudio();
+
+          const audio = new Audio(audioSrc);
+          audio.onplay = () => els.originalRef.classList.add('playing-audio');
+          audio.onpause = () =>
+            els.originalRef.classList.remove('playing-audio');
+          audio.onended = () => {
+            els.originalRef.classList.remove('playing-audio');
+          };
+
+          state.currentAudio = audio;
+        }
+
+        return state.currentAudio;
+      }
+
+      function playCurrentAudio(
+        fromStart = false,
+        { notifyIfMissing = false, toggleIfPlaying = false } = {}
+      ) {
+        const audio = ensureCurrentAudio();
+        if (!audio) {
+          if (notifyIfMissing) {
+            showToast('Nenhum áudio disponível para a frase atual.');
+          }
+          return;
+        }
+
+        if (toggleIfPlaying && !fromStart && !audio.paused) {
+          audio.pause();
+          return;
+        }
+
+        if (fromStart) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+
+        audio.play().catch((e) => console.log('Erro ao reproduzir:', e));
+      }
+
+      function pauseCurrentAudio() {
+        if (!state.currentAudio) return;
+        state.currentAudio.pause();
+      }
+
+      function toggleCurrentAudio() {
+        playCurrentAudio(false, {
+          notifyIfMissing: true,
+          toggleIfPlaying: true,
+        });
+      }
+
+      function restartCurrentAudio() {
+        playCurrentAudio(true, { notifyIfMissing: true });
       }
 
       function showToast(msg, duration = 3000) {
-        const t = document.getElementById("toast");
+        const t = document.getElementById('toast');
         t.textContent = msg;
-        t.style.opacity = "1";
-        setTimeout(() => (t.style.opacity = "0"), duration);
+        t.style.opacity = '1';
+        setTimeout(() => (t.style.opacity = '0'), duration);
       }
 
       // Função para baixar texto puro
       function downloadTextFile(contentArray, filename) {
-        const textContent = contentArray.join("\n");
-        const blob = new Blob([textContent], { type: "text/plain" });
+        const textContent = contentArray.join('\n');
+        const blob = new Blob([textContent], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
+        const a = document.createElement('a');
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
@@ -763,11 +1094,14 @@
         isChecked: false,
         filesLoaded: { source: false, target: false },
         rawFiles: { source: null, target: null },
+        pendingAudioFiles: [],
+        selectedRange: { start: 1, end: 1 },
+        currentAudio: null,
         meta: {
-          sourceName: "",
-          targetName: "",
-          sourceHash: "",
-          targetHash: "",
+          sourceName: '',
+          targetName: '',
+          sourceHash: '',
+          targetHash: '',
         },
         currentLessonKey: null,
         globalHistory: {},
@@ -775,45 +1109,49 @@
 
       // --- 3. Elementos do DOM ---
       const els = {
-        fileSource: document.getElementById("file-source"),
-        fileTarget: document.getElementById("file-target"),
-        fileImport: document.getElementById("file-import"),
-        folderAudio: document.getElementById("folder-audio"),
-        btnStart: document.getElementById("btn-start"),
-        btnExport: document.getElementById("btn-export"),
-        btnImportTrigger: document.getElementById("btn-import-trigger"),
-        btnTheme: document.getElementById("btn-theme"),
-        btnDlSource: document.getElementById("btn-dl-source"),
-        btnDlTarget: document.getElementById("btn-dl-target"),
+        fileSource: document.getElementById('file-source'),
+        fileTarget: document.getElementById('file-target'),
+        fileImport: document.getElementById('file-import'),
+        folderAudio: document.getElementById('folder-audio'),
+        rangeStart: document.getElementById('range-start'),
+        rangeEnd: document.getElementById('range-end'),
+        btnRangeAll: document.getElementById('btn-range-all'),
+        btnStart: document.getElementById('btn-start'),
+        btnExport: document.getElementById('btn-export'),
+        btnImportTrigger: document.getElementById('btn-import-trigger'),
+        btnTheme: document.getElementById('btn-theme'),
+        btnDlSource: document.getElementById('btn-dl-source'),
+        btnDlTarget: document.getElementById('btn-dl-target'),
 
-        header: document.querySelector("header"),
-        btnSettings: document.getElementById("btn-settings"),
-        settingsPanel: document.getElementById("settings-panel"),
+        header: document.querySelector('header'),
+        btnSettings: document.getElementById('btn-settings'),
+        settingsPanel: document.getElementById('settings-panel'),
 
-        welcomeScreen: document.getElementById("welcome-screen"),
-        studyScreen: document.getElementById("study-screen"),
+        welcomeScreen: document.getElementById('welcome-screen'),
+        studyScreen: document.getElementById('study-screen'),
 
-        progress: document.getElementById("progress-indicator"),
-        modeBadge: document.getElementById("mode-display"),
-        phraseDisplay: document.getElementById("phrase-display"),
-        userInput: document.getElementById("user-input"),
-        feedbackArea: document.getElementById("feedback-area"),
-        diffContainer: document.getElementById("diff-container"),
-        originalRef: document.getElementById("original-ref"),
+        progress: document.getElementById('progress-indicator'),
+        modeBadge: document.getElementById('mode-display'),
+        phraseDisplay: document.getElementById('phrase-display'),
+        userInput: document.getElementById('user-input'),
+        feedbackArea: document.getElementById('feedback-area'),
+        diffContainer: document.getElementById('diff-container'),
+        originalRef: document.getElementById('original-ref'),
 
-        btnCheck: document.getElementById("btn-check"),
-        btnNext: document.getElementById("btn-next"),
-        btnFav: document.getElementById("btn-toggle-fav"),
-        btnEdit: document.getElementById("btn-edit-phrase"),
-        btnExclude: document.getElementById("btn-exclude"),
-        btnToggleMode: document.getElementById("btn-toggle-mode"),
+        btnCheck: document.getElementById('btn-check'),
+        btnPrev: document.getElementById('btn-prev'),
+        btnNext: document.getElementById('btn-next'),
+        btnFav: document.getElementById('btn-toggle-fav'),
+        btnEdit: document.getElementById('btn-edit-phrase'),
+        btnExclude: document.getElementById('btn-exclude'),
+        btnToggleMode: document.getElementById('btn-toggle-mode'),
 
         // Modal Elements
-        editModal: document.getElementById("edit-modal"),
-        editSource: document.getElementById("edit-source"),
-        editTarget: document.getElementById("edit-target"),
-        btnSaveEdit: document.getElementById("btn-save-edit"),
-        btnCancelEdit: document.getElementById("btn-cancel-edit"),
+        editModal: document.getElementById('edit-modal'),
+        editSource: document.getElementById('edit-source'),
+        editTarget: document.getElementById('edit-target'),
+        btnSaveEdit: document.getElementById('btn-save-edit'),
+        btnCancelEdit: document.getElementById('btn-cancel-edit'),
       };
 
       // --- 4. Lógica de Upload ---
@@ -821,63 +1159,130 @@
         if (!file) return;
         try {
           const content = await readFile(file);
-          const isSrt = file.name.toLowerCase().endsWith(".srt");
+          const isSrt = file.name.toLowerCase().endsWith('.srt');
           const lines = isSrt ? parseSRT(content) : parseTXT(content);
 
           state.rawFiles[type] = lines;
           state.filesLoaded[type] = true;
 
           const btn =
-            type === "source"
+            type === 'source'
               ? els.fileSource.previousElementSibling
               : els.fileTarget.previousElementSibling;
           btn.innerHTML = `✅ ${file.name.substring(0, 15)}...`;
-          btn.classList.add("btn-loaded");
+          btn.classList.add('btn-loaded');
 
           if (state.filesLoaded.source && state.filesLoaded.target) {
+            updateRangeInputs();
             els.btnStart.disabled = false;
-            showToast("Arquivos prontos! Clique em Iniciar.");
+            showToast('Arquivos prontos! Clique em Iniciar.');
           }
         } catch (e) {
           console.error(e);
-          showToast("Erro ao ler arquivo.");
+          showToast('Erro ao ler arquivo.');
         }
       }
 
-      async function handleAudioFolder(files) {
-        if (!state.data || state.data.length === 0) {
-          alert("Carregue e inicie as frases antes de carregar o áudio.");
-          return;
+      function updateRangeInputs() {
+        const source = state.rawFiles.source || [];
+        const target = state.rawFiles.target || [];
+        const total = Math.min(source.length, target.length);
+
+        els.rangeStart.disabled = total === 0;
+        els.rangeEnd.disabled = total === 0;
+        els.btnRangeAll.disabled = total === 0;
+
+        els.rangeStart.min = 1;
+        els.rangeEnd.min = 1;
+        els.rangeStart.max = total;
+        els.rangeEnd.max = total;
+
+        const currentStart = parseInt(els.rangeStart.value, 10);
+        const currentEnd = parseInt(els.rangeEnd.value, 10);
+
+        els.rangeStart.value =
+          Number.isInteger(currentStart) && currentStart >= 1
+            ? Math.min(currentStart, total || 1)
+            : 1;
+
+        els.rangeEnd.value =
+          Number.isInteger(currentEnd) && currentEnd >= 1
+            ? Math.min(currentEnd, total || 1)
+            : total || 1;
+      }
+
+      function getSelectedRange(total) {
+        let start = parseInt(els.rangeStart.value, 10);
+        let end = parseInt(els.rangeEnd.value, 10);
+
+        if (!Number.isInteger(start)) start = 1;
+        if (!Number.isInteger(end)) end = total;
+
+        start = Math.max(1, Math.min(start, total));
+        end = Math.max(1, Math.min(end, total));
+
+        if (start > end) {
+          throw new Error('intervalo_invalido');
         }
-        const fileArray = Array.from(files).filter((f) =>
-          f.name.toLowerCase().endsWith(".mp3")
-        );
-        if (fileArray.length === 0) {
-          showToast("Nenhum MP3 encontrado.");
-          return;
-        }
+
+        return { start, end };
+      }
+
+      function bindAudioFilesToData(fileArray) {
+        if (!state.data || state.data.length === 0) return 0;
 
         const collator = new Intl.Collator(undefined, {
           numeric: true,
-          sensitivity: "base",
+          sensitivity: 'base',
         });
-        fileArray.sort((a, b) => collator.compare(a.name, b.name));
+
+        const sortedFiles = [...fileArray].sort((a, b) =>
+          collator.compare(a.name, b.name)
+        );
 
         let count = 0;
-        state.data.forEach((item, index) => {
-          if (fileArray[index]) {
-            item.audioSrc = URL.createObjectURL(fileArray[index]);
+        state.data.forEach((item) => {
+          if (item.audioSrc) {
+            URL.revokeObjectURL(item.audioSrc);
+            delete item.audioSrc;
+          }
+
+          const audioFile = sortedFiles[item.originalIndex];
+          if (audioFile) {
+            item.audioSrc = URL.createObjectURL(audioFile);
             count++;
           }
         });
 
-        const btn = els.folderAudio.previousElementSibling;
-        btn.innerHTML = `✅ ${count} Áudios`;
-        btn.classList.add("btn-loaded");
-        showToast(`${count} áudios vinculados!`);
+        return count;
       }
 
-      function restoreLessonFromHistory(lessonData) {
+      async function handleAudioFolder(files) {
+        const fileArray = Array.from(files).filter((f) =>
+          f.name.toLowerCase().endsWith('.mp3')
+        );
+        if (fileArray.length === 0) {
+          showToast('Nenhum MP3 encontrado.');
+          return;
+        }
+
+        state.pendingAudioFiles = fileArray;
+
+        const btn = els.folderAudio.previousElementSibling;
+        btn.innerHTML = `✅ ${fileArray.length} Áudios`;
+        btn.classList.add('btn-loaded');
+
+        if (state.data && state.data.length > 0) {
+          const count = bindAudioFilesToData(state.pendingAudioFiles);
+          showToast(`${count} áudios vinculados!`);
+        } else {
+          showToast(
+            `${fileArray.length} áudios selecionados. Eles serão vinculados ao iniciar.`
+          );
+        }
+      }
+
+      function restoreLessonFromHistory(lessonData, { notify = true } = {}) {
         if (lessonData.favorites) {
           lessonData.favorites.forEach((id) => {
             if (state.data[id]) state.data[id].favorite = true;
@@ -890,10 +1295,10 @@
         }
         if (lessonData.lastIndex !== undefined)
           state.currentIndex = lessonData.lastIndex;
-        showToast(`Recuperado: ${lessonData.name || "Dados Salvos"}`);
+        if (notify) showToast(`Recuperado: ${lessonData.name || 'Dados Salvos'}`);
       }
 
-      function initData() {
+      function initData({ silent = false } = {}) {
         try {
           const source = state.rawFiles.source;
           const target = state.rawFiles.target;
@@ -905,20 +1310,24 @@
             );
           }
 
-          state.meta.sourceHash = generateContentHash(source.join(""));
-          state.meta.targetHash = generateContentHash(target.join(""));
+          const total = Math.min(source.length, target.length);
+          const { start, end } = getSelectedRange(total);
+          state.selectedRange = { start, end };
+
+          state.meta.sourceHash = generateContentHash(source.join(''));
+          state.meta.targetHash = generateContentHash(target.join(''));
           if (els.fileSource.files[0])
             state.meta.sourceName = els.fileSource.files[0].name;
           if (els.fileTarget.files[0])
             state.meta.targetName = els.fileTarget.files[0].name;
 
-          state.currentLessonKey = `${state.meta.sourceHash}_${state.meta.targetHash}`;
+          state.currentLessonKey = `${state.meta.sourceHash}_${state.meta.targetHash}_${start}_${end}`;
 
           state.data = [];
-          const length = Math.min(source.length, target.length);
-          for (let i = 0; i < length; i++) {
+          for (let i = start - 1; i <= end - 1; i++) {
             state.data.push({
-              id: i,
+              id: i - (start - 1),
+              originalIndex: i,
               pt: source[i],
               en: target[i],
               favorite: false,
@@ -926,12 +1335,22 @@
             });
           }
 
+          if (state.pendingAudioFiles.length > 0) {
+            const count = bindAudioFilesToData(state.pendingAudioFiles);
+            if (!silent) {
+              showToast(
+                `${count} áudios vinculados para o intervalo selecionado.`
+              );
+            }
+          }
+
           if (
             state.globalHistory &&
             state.globalHistory[state.currentLessonKey]
           ) {
             restoreLessonFromHistory(
-              state.globalHistory[state.currentLessonKey]
+              state.globalHistory[state.currentLessonKey],
+			  { notify: !silent }
             );
           }
 
@@ -940,15 +1359,21 @@
           els.btnDlTarget.disabled = false;
           startSession();
         } catch (error) {
-          console.error("Init Error:", error);
-          alert("Erro ao iniciar.");
+          console.error('Init Error:', error);
+          if (error.message === 'intervalo_invalido') {
+            alert(
+              'Intervalo inválido. O número inicial não pode ser maior que o final.'
+            );
+          } else {
+            alert('Erro ao iniciar.');
+          }
         }
       }
 
       function startSession() {
-        if (window.innerWidth <= 600) els.header.classList.add("menu-hidden");
-        els.welcomeScreen.style.display = "none";
-        els.studyScreen.style.display = "block";
+        if (window.innerWidth <= 600) els.header.classList.add('menu-hidden');
+        els.welcomeScreen.style.display = 'none';
+        els.studyScreen.style.display = 'block';
 
         if (
           !state.data[state.currentIndex] ||
@@ -977,22 +1402,24 @@
       function loadCard(index = null) {
         if (index === null || index === -1) {
           index = getNextIndex();
-          if (index === -1) return alert("Fim da lista!");
+          if (index === -1) return alert('Fim da lista!');
         }
+        stopAndCleanupCurrentAudio();
         state.currentIndex = index;
         const item = state.data[state.currentIndex];
 
         els.phraseDisplay.textContent = item.pt;
-        els.userInput.value = "";
+        els.userInput.value = '';
         els.userInput.disabled = false;
         els.userInput.focus();
 
-        els.feedbackArea.style.display = "none";
-        els.diffContainer.innerHTML = "";
-        els.originalRef.textContent = "";
+        els.feedbackArea.style.display = 'none';
+        els.diffContainer.innerHTML = '';
+        els.originalRef.textContent = '';
+        els.originalRef.title = '';
 
-        els.btnCheck.classList.remove("hidden");
-        els.btnNext.classList.add("hidden");
+        els.btnCheck.classList.remove('hidden');
+        els.btnNext.classList.add('hidden');
         state.isChecked = false;
         updateMetaDisplay();
       }
@@ -1001,9 +1428,9 @@
         const item = state.data[state.currentIndex];
         els.progress.textContent = `Frase ${state.currentIndex + 1} / ${
           state.data.length
-        }`;
-        if (item.favorite) els.btnFav.classList.add("favorite-active");
-        else els.btnFav.classList.remove("favorite-active");
+        } (original ${item.originalIndex + 1})`;
+        if (item.favorite) els.btnFav.classList.add('favorite-active');
+        else els.btnFav.classList.remove('favorite-active');
       }
 
       function checkAnswer() {
@@ -1012,80 +1439,72 @@
         const rawUser = els.userInput.value;
         const rawTarget = item.en;
 
-        const normalize = (str) =>
-          str
-            .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, "")
-            .trim();
-        const userWordsNorm = normalize(rawUser)
-          .split(/\s+/)
-          .filter((w) => w);
-        const targetWordsNorm = normalize(rawTarget)
-          .split(/\s+/)
-          .filter((w) => w);
-        const userWordsDisplay = rawUser.trim().split(/\s+/);
-        const targetWordsDisplay = rawTarget.trim().split(/\s+/);
+        const userWordsDisplay = tokenizeWords(rawUser);
+        const targetWordsDisplay = tokenizeWords(rawTarget);
 
-        let html = "";
-        let u = 0;
-        let t = 0;
-
-        while (u < userWordsNorm.length || t < targetWordsNorm.length) {
-          const userW = userWordsNorm[u];
-          const targetW = targetWordsNorm[t];
-          const dispUser =
-            userWordsDisplay[u] !== undefined
-              ? userWordsDisplay[u]
-              : userW || "";
-          const dispTarget =
-            targetWordsDisplay[t] !== undefined
-              ? targetWordsDisplay[t]
-              : targetW || "";
-
-          if (userW === targetW) {
-            html += `<span class="diff-word diff-correct">${dispTarget}</span>`;
-            u++;
-            t++;
-          } else if (userW && targetWordsNorm.slice(t).includes(userW)) {
-            html += `<span class="diff-word diff-missing">${dispTarget}</span>`;
-            t++;
-          } else if (userW) {
-            html += `<span class="diff-word diff-wrong" title="Digitado: ${dispUser}">${dispUser}</span>`;
-            u++;
-          } else {
-            html += `<span class="diff-word diff-missing">${dispTarget}</span>`;
-            t++;
-          }
-        }
+        const ops = alignTokenSequences(targetWordsDisplay, userWordsDisplay);
+        const html = renderAlignedDiff(ops);
 
         els.diffContainer.innerHTML = html;
-        els.originalRef.title = "Clique para ouvir o áudio";
+        els.originalRef.title =
+          'Clique: tocar/pausar | Duplo clique: reiniciar | Alt+P: tocar/pausar | Alt+R: reiniciar | Alt+I: recarregar frase | Alt+B: frase anterior';
         els.originalRef.textContent = item.en;
-        els.feedbackArea.style.display = "block";
+        els.feedbackArea.style.display = 'block';
 
         els.userInput.disabled = true;
-        els.btnCheck.classList.add("hidden");
-        els.btnNext.classList.remove("hidden");
+        els.btnCheck.classList.add('hidden');
+        els.btnNext.classList.remove('hidden');
         els.btnNext.focus();
         state.isChecked = true;
         playCurrentAudio();
       }
 
+      function getPreviousIndex() {
+        const eligible = state.data
+          .filter((item) => !item.excluded)
+          .map((item) => item.id);
+        if (eligible.length === 0) return -1;
+
+        const previous = [...eligible]
+          .reverse()
+          .find((id) => id < state.currentIndex);
+        return previous !== undefined
+          ? previous
+          : eligible[eligible.length - 1];
+      }
+
       function nextPhrase() {
         const nextId = getNextIndex();
-        if (nextId === -1) return alert("Fim!");
+        if (nextId === -1) return alert('Fim!');
         if (!state.isRandom && nextId <= state.currentIndex) {
-          if (confirm("Você completou todas as frases! Deseja reiniciar?"))
+          if (confirm('Você completou todas as frases! Deseja reiniciar?'))
             loadCard(nextId);
           return;
         }
         loadCard(nextId);
       }
 
+      function previousPhrase() {
+        const prevId = getPreviousIndex();
+        if (prevId === -1) return alert('Início da lista!');
+
+        if (!state.isRandom && prevId >= state.currentIndex) {
+          if (
+            confirm(
+              'Você voltou ao início da lista! Deseja ir para a última frase disponível?'
+            )
+          ) {
+            loadCard(prevId);
+          }
+          return;
+        }
+        loadCard(prevId);
+      }
+
       // --- 6. Edição e Exportação (Feature Nova) ---
 
       // Abrir Modal
-      els.btnEdit.addEventListener("click", () => {
+      els.btnEdit.addEventListener('click', () => {
         const item = state.data[state.currentIndex];
         if (!item) return;
 
@@ -1095,17 +1514,17 @@
       });
 
       // Cancelar Edição
-      els.btnCancelEdit.addEventListener("click", () => {
+      els.btnCancelEdit.addEventListener('click', () => {
         els.editModal.close();
       });
 
       // Salvar Edição
-      els.btnSaveEdit.addEventListener("click", () => {
+      els.btnSaveEdit.addEventListener('click', () => {
         const newPt = els.editSource.value.trim();
         const newEn = els.editTarget.value.trim();
 
         if (!newPt || !newEn) {
-          alert("Os campos não podem ficar vazios.");
+          alert('Os campos não podem ficar vazios.');
           return;
         }
 
@@ -1113,7 +1532,7 @@
         state.data[state.currentIndex].pt = newPt;
         state.data[state.currentIndex].en = newEn;
 
-        showToast("Frase atualizada! Lembre-se de baixar os arquivos depois.");
+        showToast('Frase atualizada! Lembre-se de baixar os arquivos depois.');
         els.editModal.close();
 
         // Recarrega o card atual para refletir as mudanças
@@ -1121,16 +1540,16 @@
       });
 
       // Exportar Arquivos de Texto (Corrigidos)
-      els.btnDlSource.addEventListener("click", () => {
+      els.btnDlSource.addEventListener('click', () => {
         const content = state.data.map((d) => d.pt);
-        const name = state.meta.sourceName || "source_edited.txt";
-        downloadTextFile(content, "EDITED_" + name.replace(".srt", ".txt"));
+        const name = state.meta.sourceName || 'source_edited.txt';
+        downloadTextFile(content, 'EDITED_' + name.replace('.srt', '.txt'));
       });
 
-      els.btnDlTarget.addEventListener("click", () => {
+      els.btnDlTarget.addEventListener('click', () => {
         const content = state.data.map((d) => d.en);
-        const name = state.meta.targetName || "target_edited.txt";
-        downloadTextFile(content, "EDITED_" + name.replace(".srt", ".txt"));
+        const name = state.meta.targetName || 'target_edited.txt';
+        downloadTextFile(content, 'EDITED_' + name.replace('.srt', '.txt'));
       });
 
       // --- 7. Persistência e Eventos ---
@@ -1145,16 +1564,16 @@
         };
         state.globalHistory[state.currentLessonKey] = currentLessonData;
         const masterFile = {
-          app: "StudySync",
-          version: "2.0",
+          app: 'StudySync',
+          version: '2.0',
           lessons: state.globalHistory,
         };
         const dataStr =
-          "data:text/json;charset=utf-8," +
+          'data:text/json;charset=utf-8,' +
           encodeURIComponent(JSON.stringify(masterFile, null, 2));
-        const dl = document.createElement("a");
-        dl.setAttribute("href", dataStr);
-        dl.setAttribute("download", "studysync_master.json");
+        const dl = document.createElement('a');
+        dl.setAttribute('href', dataStr);
+        dl.setAttribute('download', 'studysync_master.json');
         document.body.appendChild(dl);
         dl.click();
         dl.remove();
@@ -1177,78 +1596,144 @@
           }
         } catch (e) {
           console.error(e);
-          alert("Erro JSON.");
+          alert('Erro JSON.');
         }
       }
 
-      els.btnTheme.addEventListener("click", () =>
-        document.body.classList.toggle("light-mode")
+      els.btnTheme.addEventListener('click', () =>
+        document.body.classList.toggle('light-mode')
       );
-      els.fileSource.addEventListener("change", (e) =>
-        handleFileUpload("source", e.target.files[0])
+      els.fileSource.addEventListener('change', (e) =>
+        handleFileUpload('source', e.target.files[0])
       );
-      els.fileTarget.addEventListener("change", (e) =>
-        handleFileUpload("target", e.target.files[0])
+      els.fileTarget.addEventListener('change', (e) =>
+        handleFileUpload('target', e.target.files[0])
       );
 
-      els.btnSettings.addEventListener("click", (e) => {
+      els.rangeStart.addEventListener('change', () => {
+        const start = parseInt(els.rangeStart.value, 10);
+        const end = parseInt(els.rangeEnd.value, 10);
+        if (Number.isInteger(start) && Number.isInteger(end) && start > end) {
+          els.rangeEnd.value = start;
+        }
+      });
+      els.rangeEnd.addEventListener('change', () => {
+        const start = parseInt(els.rangeStart.value, 10);
+        const end = parseInt(els.rangeEnd.value, 10);
+        if (Number.isInteger(start) && Number.isInteger(end) && end < start) {
+          els.rangeStart.value = end;
+        }
+      });
+      els.btnRangeAll.addEventListener('click', () => {
+        const source = state.rawFiles.source || [];
+        const target = state.rawFiles.target || [];
+        const total = Math.min(source.length, target.length);
+        if (total === 0) return;
+
+        els.rangeStart.value = 1;
+        els.rangeEnd.value = total;
+        showToast(`Intervalo ajustado para todas as ${total} frases.`);
+      });
+
+      els.btnSettings.addEventListener('click', (e) => {
         e.stopPropagation();
         els.settingsPanel.style.display =
-          els.settingsPanel.style.display === "block" ? "none" : "block";
+          els.settingsPanel.style.display === 'block' ? 'none' : 'block';
       });
-      document.addEventListener("click", (e) => {
+      document.addEventListener('click', (e) => {
         if (
           !els.settingsPanel.contains(e.target) &&
           e.target !== els.btnSettings
         ) {
-          els.settingsPanel.style.display = "none";
+          els.settingsPanel.style.display = 'none';
         }
       });
 
-      els.folderAudio.addEventListener("change", (e) =>
+      els.folderAudio.addEventListener('change', (e) =>
         handleAudioFolder(e.target.files)
       );
-      els.originalRef.addEventListener("click", () => {
-        if (state.isChecked) playCurrentAudio();
+      els.originalRef.addEventListener('click', () => {
+        if (state.isChecked) toggleCurrentAudio();
       });
-      els.btnStart.addEventListener("click", initData);
-      els.btnCheck.addEventListener("click", checkAnswer);
-      els.btnNext.addEventListener("click", nextPhrase);
-      els.btnFav.addEventListener("click", () => {
+      els.originalRef.addEventListener('dblclick', () => {
+        if (state.isChecked) restartCurrentAudio();
+      });
+      els.btnStart.addEventListener('click', () =>
+        initData({ silent: els.studyScreen.style.display !== 'none' })
+      );
+      els.btnCheck.addEventListener('click', checkAnswer);
+      els.btnPrev.addEventListener('click', previousPhrase);
+      els.btnNext.addEventListener('click', nextPhrase);
+      els.btnFav.addEventListener('click', () => {
         state.data[state.currentIndex].favorite =
           !state.data[state.currentIndex].favorite;
         updateMetaDisplay();
       });
-      els.btnExclude.addEventListener("click", () => {
-        if (!confirm("Excluir frase?")) return;
+      els.btnExclude.addEventListener('click', () => {
+        if (!confirm('Excluir frase?')) return;
         state.data[state.currentIndex].excluded = true;
         nextPhrase();
       });
-      els.btnToggleMode.addEventListener("click", () => {
+      els.btnToggleMode.addEventListener('click', () => {
         state.isRandom = !state.isRandom;
-        els.modeBadge.textContent = state.isRandom ? "Aleatório" : "Sequencial";
+        els.modeBadge.textContent = state.isRandom ? 'Aleatório' : 'Sequencial';
       });
 
-      els.userInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
+      els.userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
           e.preventDefault();
           checkAnswer();
         }
       });
-      document.addEventListener("keydown", (e) => {
-        if (els.studyScreen.style.display !== "none" && !els.editModal.open) {
-          if (state.isChecked && e.key === "Enter") {
+      document.addEventListener('keydown', (e) => {
+        if (els.editModal.open) return;
+
+        const isTypingField =
+          e.target === els.userInput ||
+          e.target === els.editSource ||
+          e.target === els.editTarget ||
+          e.target.tagName === 'INPUT' ||
+          e.target.tagName === 'TEXTAREA';
+
+        if (e.altKey && e.key.toLowerCase() === 'p') {
+          e.preventDefault();
+          if (state.isChecked) toggleCurrentAudio();
+          return;
+        }
+
+        if (e.altKey && e.key.toLowerCase() === 'r') {
+          e.preventDefault();
+          if (state.isChecked) restartCurrentAudio();
+          return;
+        }
+
+        if (e.altKey && e.key.toLowerCase() === 'b') {
+          e.preventDefault();
+          previousPhrase();
+          return;
+        }
+
+        if (e.altKey && e.key.toLowerCase() === 'i') {
+          e.preventDefault();
+          if (!els.btnStart.disabled) {
+            els.btnStart.click();
+          }
+          return;
+        }
+
+        if (els.studyScreen.style.display !== 'none' && !els.editModal.open) {
+          if (!isTypingField && state.isChecked && e.key === 'Enter') {
             e.preventDefault();
             nextPhrase();
           }
         }
       });
 
-      els.btnExport.addEventListener("click", exportData);
-      els.btnImportTrigger.addEventListener("click", () =>
+      els.btnExport.addEventListener('click', exportData);
+      els.btnImportTrigger.addEventListener('click', () =>
         els.fileImport.click()
       );
-      els.fileImport.addEventListener("change", (e) =>
+      els.fileImport.addEventListener('change', (e) =>
         importData(e.target.files[0])
       );
     </script>
