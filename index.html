@@ -3,44 +3,71 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>Bidirectional Translation</title>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
       :root {
-        /* --- Dark Mode (Padrão) --- */
-        --bg-color: #121212;
-        --card-bg: #1e1e1e;
-        --text-main: #e0e0e0;
-        --text-muted: #a0a0a0;
-        --primary: #3498db;
-        --accent: #9b59b6;
-        --success: #27ae60;
-        --warning: #e67e22;
-        --danger: #e74c3c;
-        --missing: #2980b9;
-        --border-radius: 12px;
-        --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        /* --- Dark Mode (Padrão - Slate Theme) --- */
+        --bg-color: #0f172a;
+        --card-bg: #1e293b;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --border-color: #334155;
+
+        --primary: #3b82f6;
+        --primary-hover: #2563eb;
+        --accent: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --danger-hover: #dc2626;
+        --missing: #0ea5e9;
+
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.1);
+        --shadow-md:
+          0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+        --shadow-lg:
+          0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+
         --font-family:
           'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
           sans-serif;
 
-        --btn-loaded-bg: #2ecc71;
-        --btn-loaded-text: #000000;
+        --btn-loaded-bg: rgba(16, 185, 129, 0.15);
+        --btn-loaded-text: #34d399;
+        --btn-loaded-border: #10b981;
       }
 
       /* --- Light Mode --- */
       body.light-mode {
-        --bg-color: #f4f6f8;
+        --bg-color: #f8fafc;
         --card-bg: #ffffff;
-        --text-main: #2c3e50;
-        --text-muted: #7f8c8d;
-        --primary: #3498db;
-        --success: #27ae60;
-        --warning: #e67e22;
-        --missing: #2980b9;
-        --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
 
-        --btn-loaded-bg: #27ae60;
-        --btn-loaded-text: #ffffff;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --success: #059669;
+        --warning: #d97706;
+        --danger: #dc2626;
+        --danger-hover: #b91c1c;
+
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md:
+          0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+        --shadow-lg:
+          0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+
+        --btn-loaded-bg: #ecfdf5;
+        --btn-loaded-text: #059669;
+        --btn-loaded-border: #34d399;
       }
 
       * {
@@ -60,85 +87,235 @@
         overflow-y: auto;
         overflow-x: hidden;
         transition:
-          background-color 0.3s,
-          color 0.3s;
+          background-color 0.3s ease,
+          color 0.3s ease;
+        line-height: 1.5;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
       }
 
       /* --- Header --- */
       header {
         background: var(--card-bg);
         padding: 1rem 1.5rem;
-        box-shadow: var(--shadow);
+        box-shadow: var(--shadow-sm);
+        border-bottom: 1px solid var(--border-color);
         z-index: 10;
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
+        position: relative;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
       }
 
       .brand-area {
         display: flex;
         align-items: center;
-        gap: 15px;
+        gap: 0.75rem;
       }
+
       h1 {
-        font-size: 1.2rem;
+        font-size: 1.25rem;
         font-weight: 700;
         color: var(--text-main);
         white-space: nowrap;
+        letter-spacing: -0.025em;
       }
 
-      .setup-container {
-        display: flex;
-        gap: 0.8rem;
+      /* --- Botões --- */
+      .btn {
+        display: inline-flex;
         align-items: center;
-        flex-wrap: wrap;
-        justify-content: flex-end;
+        justify-content: center;
+        gap: 0.5rem;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        font-family: var(--font-family);
+        transition: all 0.2s ease;
+        background-color: var(--primary);
+        color: white;
       }
 
+      .btn:hover:not(:disabled) {
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .btn:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .btn:disabled {
+        background-color: var(--border-color);
+        color: var(--text-muted);
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+      }
+
+      .btn-outline:hover:not(:disabled) {
+        background: var(--bg-color);
+        border-color: var(--text-muted);
+      }
+
+      .btn-danger {
+        background-color: var(--danger);
+      }
+      .btn-danger:hover:not(:disabled) {
+        background-color: var(--danger-hover);
+      }
+
+      .btn-loaded {
+        background-color: var(--btn-loaded-bg) !important;
+        color: var(--btn-loaded-text) !important;
+        border: 1px solid var(--btn-loaded-border) !important;
+        font-weight: 600 !important;
+      }
+
+      .btn-icon {
+        padding: 0.4rem 0.6rem;
+        font-size: 1rem;
+      }
+
+      /* --- Menu Lateral (Sidebar) & Overlay --- */
+      #sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(2px);
+        z-index: 999;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+      }
+      #sidebar-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: -350px;
+        width: 350px;
+        max-width: 85vw;
+        height: 100vh;
+        height: 100dvh;
+        background: var(--card-bg);
+        box-shadow: var(--shadow-lg);
+        z-index: 1000;
+        transition: left 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border-color);
+        overflow-y: auto;
+      }
+      .sidebar.open { left: 0; }
+
+      .sidebar-header {
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .sidebar-header h2 { font-size: 1.1rem; color: var(--text-main); margin: 0; }
+
+      .sidebar-content {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+      .sidebar-content h4 {
+        margin-bottom: 0.5rem;
+        color: var(--text-main);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+      }
+      .settings-group { display: flex; flex-direction: column; gap: 0.5rem; }
+      hr { border: 0; border-top: 1px solid var(--border-color); margin: 0; }
+
+      /* --- Entradas de Arquivo e Mídia --- */
+      .setup-container { display: flex; flex-direction: column; gap: 0.75rem; align-items: stretch; }
       .file-input-wrapper {
         position: relative;
         overflow: hidden;
-        display: inline-block;
+        width: 100%;
+      }
+      .file-input-wrapper .btn { width: 100%; justify-content: center; }
+      input[type='file'] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
       }
 
       .range-wrapper {
         display: flex;
         align-items: center;
-        gap: 0.4rem;
-        background: var(--card-bg);
-        border: 1px solid #444;
-        border-radius: 8px;
-        padding: 0.35rem 0.6rem;
-      }
-      body.light-mode .range-wrapper {
-        border-color: #ddd;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem;
       }
 
       .range-wrapper label {
+        width: 100%;
+        text-align: center;
         font-size: 0.85rem;
+        font-weight: 500;
         color: var(--text-muted);
       }
 
       .range-input {
-        width: 70px;
-        padding: 0.4rem 0.45rem;
-        border-radius: 6px;
-        border: 1px solid #555;
-        background: var(--bg-color);
+        width: 60px;
+        padding: 0.25rem 0.4rem;
+        border-radius: 4px;
+        border: 1px solid transparent;
+        background: transparent;
         color: var(--text-main);
         font-family: var(--font-family);
         font-size: 0.9rem;
+        text-align: center;
+        outline: none;
+        transition: background 0.2s;
       }
-      body.light-mode .range-input {
-        border-color: #ddd;
+      .range-input:focus {
+        background: var(--card-bg);
+        border-color: var(--border-color);
       }
-
-      .range-btn {
-        padding: 0.4rem 0.7rem;
-        font-size: 0.85rem;
-        white-space: nowrap;
+      .range-input:disabled {
+        color: var(--text-muted);
       }
 
       .range-separator {
@@ -146,102 +323,14 @@
         font-size: 0.85rem;
       }
 
-      .btn {
-        border: none;
-        padding: 0.6rem 1.2rem;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        font-weight: 500;
-        transition: all 0.2s;
-        background-color: var(--primary);
-        color: white;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .btn:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-      }
-      .btn:disabled {
-        background-color: #555;
-        cursor: not-allowed;
-        transform: none;
-        color: #888;
-      }
-
-      .btn-outline {
-        background: transparent;
-        border: 1px solid var(--primary);
-        color: var(--primary);
-      }
-      .btn-outline:hover {
-        background: var(--primary);
-        color: white;
-      }
-
-      .btn-loaded {
-        background-color: var(--btn-loaded-bg) !important;
-        color: var(--btn-loaded-text) !important;
-        border-color: var(--btn-loaded-bg) !important;
-        font-weight: 700 !important;
-        box-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
-      }
-
-      .btn-danger {
-        background-color: var(--danger);
-        color: white;
-      }
-
-      input[type='file'] {
-        font-size: 100px;
-        position: absolute;
-        left: 0;
-        top: 0;
-        opacity: 0;
-        cursor: pointer;
-      }
-
-      /* --- Settings Panel (Dropdown) --- */
-      #settings-panel {
-        display: none;
-        position: absolute;
-        top: 70px;
-        left: 20px; /* Alinhado à esquerda no desktop */
-        background: var(--card-bg);
-        border: 1px solid #444;
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-        z-index: 100;
-        width: 300px;
-      }
-      body.light-mode #settings-panel {
-        border-color: #ddd;
-      }
-
-      #settings-panel h4 {
-        margin-bottom: 10px;
-        color: var(--text-muted);
-        font-size: 0.9rem;
-        text-transform: uppercase;
-      }
-      .settings-group {
-        margin-bottom: 15px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
       /* --- Main Study Area --- */
       main {
         flex: 1;
         display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        padding: 1rem;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        padding: 2.5rem 1.5rem;
         width: 100%;
       }
 
@@ -249,57 +338,95 @@
         text-align: center;
         color: var(--text-muted);
         max-width: 600px;
-        padding: 2rem;
+        padding: 3rem 2rem;
+        background: var(--card-bg);
+        border: 1px dashed var(--border-color);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
       }
 
-      #study-screen {
+      #welcome-screen h2 {
+        color: var(--text-main);
+        margin-bottom: 1rem;
+        font-weight: 600;
+      }
+
+      #study-layout {
         display: none;
         width: 100%;
         max-width: 800px;
+        margin: 0 auto;
+        gap: 1.5rem;
+        flex-direction: column;
+        align-items: center;
+      }
+      #study-layout.active { display: flex; }
+
+      #media-column {
+        display: none;
+        flex-direction: column;
+        gap: 1rem;
+        width: 100%;
+        max-width: 800px;
+      }
+      #media-column.active { display: flex; }
+
+      #study-screen {
+        display: block;
+        width: 100%;
+        max-width: 800px;
         background: var(--card-bg);
-        padding: 2rem;
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow);
-        text-align: center;
+        padding: 2.5rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
         position: relative;
+        border: 1px solid var(--border-color);
+        margin: 0;
       }
 
       .study-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 2rem;
-        color: var(--text-muted);
+        margin-bottom: 2.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      #progress-indicator {
         font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        background: var(--bg-color);
+        padding: 0.25rem 0.75rem;
+        border-radius: 99px;
       }
 
       .study-header-right {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 0.5rem;
       }
 
       .mode-badge {
-        background: #333;
-        color: #ddd;
-        padding: 4px 8px;
-        border-radius: 4px;
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--primary);
+        padding: 0.25rem 0.75rem;
+        border-radius: 99px;
         font-weight: 600;
         text-transform: uppercase;
-        font-size: 0.75rem;
-      }
-      body.light-mode .mode-badge {
-        background: #eee;
-        color: #555;
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
       }
 
       /* Content */
       .phrase-source {
-        font-size: 1.4rem;
-        margin-bottom: 2rem;
-        line-height: 1.4;
+        font-size: 1.6rem;
+        margin-bottom: 2.5rem;
+        line-height: 1.5;
         color: var(--text-main);
         font-weight: 500;
+        text-align: center;
       }
 
       .input-area {
@@ -309,257 +436,453 @@
 
       #user-input {
         width: 100%;
-        padding: 1rem;
+        padding: 1.25rem;
         font-size: 1.1rem;
-        border: 2px solid #444;
-        background-color: #2c2c2c;
-        color: #fff;
-        border-radius: 8px;
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-sm);
         outline: none;
         font-family: var(--font-family);
-        transition: border-color 0.2s;
-        resize: none;
-        height: 100px;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        resize: vertical;
+        min-height: 80px;
+        line-height: 1.5;
       }
 
-      body.light-mode #user-input {
-        border: 2px solid #e0e0e0;
-        background-color: #fff;
-        color: #333;
+      #user-input::placeholder {
+        color: var(--text-muted);
+        opacity: 0.7;
       }
 
       #user-input:focus {
         border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
       }
+
       #user-input:disabled {
-        opacity: 0.7;
+        opacity: 0.6;
+        background-color: var(--card-bg);
       }
 
       /* Feedback / Diff Area */
       #feedback-area {
-        margin-top: 1rem;
-        margin-bottom: 2rem;
+        margin-top: 1.5rem;
+        margin-bottom: 2.5rem;
         text-align: left;
-        background: rgba(0, 0, 0, 0.2);
+        background: var(--bg-color);
         padding: 1.5rem;
-        border-radius: 8px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
         display: none;
-      }
-      body.light-mode #feedback-area {
-        background: #f8f9fa;
+        animation: fadeInDown 0.3s ease-out;
       }
 
       .diff-word {
         display: inline-block;
-        margin-right: 4px;
-        padding: 2px 4px;
+        margin-right: 0.3rem;
+        margin-bottom: 0.3rem;
+        padding: 0.2rem 0.5rem;
         border-radius: 4px;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .diff-correct {
-        background-color: rgba(39, 174, 96, 0.3);
-        color: #2ecc71;
+        background-color: rgba(16, 185, 129, 0.15);
+        color: #10b981;
       }
       .diff-wrong {
-        background-color: rgba(230, 126, 34, 0.3);
-        color: #e67e22;
-        text-decoration: underline;
-        text-decoration-style: wavy;
+        background-color: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        text-decoration: line-through;
+        opacity: 0.9;
       }
       .diff-missing {
-        background-color: rgba(41, 128, 185, 0.3);
-        color: #3498db;
-        border: 1px dashed #3498db;
+        background-color: transparent;
+        color: var(--missing);
+        border: 1px dashed var(--missing);
       }
 
       body.light-mode .diff-correct {
-        background-color: #d4efdf;
-        color: #27ae60;
+        background-color: #d1fae5;
+        color: #059669;
       }
       body.light-mode .diff-wrong {
-        background-color: #fdebd0;
-        color: #d35400;
+        background-color: #fee2e2;
+        color: #dc2626;
       }
       body.light-mode .diff-missing {
-        background-color: #d6eaf8;
-        color: #2980b9;
+        background-color: transparent;
+        color: #0284c7;
+        border-color: #0284c7;
       }
 
       .original-reference {
-        margin-top: 1rem;
-        font-size: 1.2rem;
-        color: var(--text-muted);
-        border-top: 1px solid #444;
-        padding-top: 0.5rem;
+        margin-top: 1.5rem;
+        font-size: 1.25rem;
+        color: var(--text-main);
+        border-top: 1px solid var(--border-color);
+        padding-top: 1.5rem;
         cursor: pointer;
         transition: color 0.2s;
+        font-weight: 500;
+        line-height: 1.5;
       }
+
       .original-reference:hover {
         color: var(--primary);
       }
+
       .playing-audio {
-        text-shadow: 0 0 5px var(--primary);
-      }
-      body.light-mode .original-reference {
-        border-top: 1px solid #eee;
+        color: var(--primary);
+        text-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
       }
 
       /* Controls Footer */
       .controls {
         display: flex;
-        justify-content: center;
+        justify-content: space-between;
+        align-items: center;
         gap: 1rem;
         flex-wrap: wrap;
+        padding-top: 1rem;
       }
+
       .action-group {
         display: flex;
-        gap: 0.5rem;
+        gap: 0.75rem;
       }
 
       /* Edit Modal */
       dialog {
         background: var(--card-bg);
         color: var(--text-main);
-        border: 1px solid #555;
-        border-radius: 12px;
-        padding: 20px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
         max-width: 90%;
-        width: 500px;
+        width: 600px;
         margin: auto;
+        box-shadow: var(--shadow-lg);
       }
+
       dialog::backdrop {
-        background: rgba(0, 0, 0, 0.7);
-      }
-      body.light-mode dialog {
-        border: 1px solid #ccc;
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(4px);
       }
 
       .modal-field {
-        margin-bottom: 15px;
+        margin-bottom: 1.25rem;
       }
+
       .modal-field label {
         display: block;
-        margin-bottom: 5px;
+        margin-bottom: 0.5rem;
         font-size: 0.9rem;
-        color: var(--primary);
-        font-weight: bold;
+        color: var(--text-muted);
+        font-weight: 600;
       }
+
       .modal-field textarea {
         width: 100%;
-        height: 80px;
-        padding: 10px;
-        border-radius: 6px;
-        border: 1px solid #555;
+        height: 100px;
+        padding: 0.75rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-color);
         background: var(--bg-color);
         color: var(--text-main);
         resize: vertical;
+        font-family: var(--font-family);
+        font-size: 1rem;
+        line-height: 1.5;
       }
+
+      .modal-field textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
       .modal-actions {
         display: flex;
         justify-content: flex-end;
-        gap: 10px;
-        margin-top: 20px;
+        gap: 0.75rem;
+        margin-top: 2rem;
       }
 
       /* Toast */
       #toast {
         position: fixed;
-        bottom: 20px;
+        bottom: 2rem;
         left: 50%;
-        transform: translateX(-50%);
-        background-color: #333;
-        color: #fff;
-        padding: 12px 24px;
-        border-radius: 50px;
-        font-size: 0.9rem;
+        transform: translateX(-50%) translateY(20px);
+        background-color: var(--text-main);
+        color: var(--bg-color);
+        padding: 0.75rem 1.5rem;
+        border-radius: 99px;
+        font-size: 0.95rem;
+        font-weight: 500;
         opacity: 0;
-        transition: opacity 0.3s;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
         pointer-events: none;
         z-index: 200;
+        box-shadow: var(--shadow-md);
       }
 
+      /* Classes de Utilidade JS */
       .hidden {
         display: none !important;
       }
       .favorite-active {
-        color: #f1c40f !important;
-        border-color: #f1c40f !important;
+        color: var(--warning) !important;
+        border-color: var(--warning) !important;
+        background-color: rgba(245, 158, 11, 0.1) !important;
+      }
+
+      /* --- YouTube Media --- */
+      .media-choice-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        text-align: center;
+      }
+      .youtube-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 0.35rem;
+        flex-wrap: wrap;
+      }
+      #youtube-url {
+        flex: 1;
+        min-width: 0;
+        padding: 0.35rem 0.5rem;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text-main);
+        font-family: var(--font-family);
+        outline: none;
+      }
+      #youtube-url:focus {
+        background: var(--card-bg);
+        border-color: var(--primary);
+      }
+      #btn-youtube-load { padding: 0.35rem 0.5rem; font-size: 0.85rem; }
+      #youtube-player-card,
+      #local-video-player-card {
+        display: none;
+        width: 100%;
+        max-width: 800px;
+        margin-bottom: 0;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+      #youtube-player-card.active,
+      #local-video-player-card.active {
+        display: block;
+      }
+      .youtube-player-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+      .youtube-player-shell {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 21 / 9;	<!-- Ajuste da altura do vídeo: 16 / 9, 16 / 7, 16 / 6 ou 21 / 9 -->
+        background: #000;
+      }
+      #youtube-player,
+      #local-video-player {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #local-video-player {
+        background: #000;
       }
 
       /* Mobile Adjustments */
-      @media (max-width: 600px) {
-        header.menu-hidden .setup-container {
-          display: none;
-        }
-        header.menu-hidden {
-          padding: 0.5rem 1rem;
-          border-bottom: 1px solid #333;
-        }
+      @media (max-width: 768px) {
         header {
           padding: 1rem;
-          justify-content: center;
           position: sticky;
           top: 0;
         }
-        .setup-container {
-          width: 100%;
-          justify-content: center;
+        main {
+          padding: 1rem;
         }
-        .btn {
-          flex-grow: 1;
-          justify-content: center;
+        #study-layout { flex-direction: column; gap: 1rem; }
+        #media-column { max-width: 100%; }
+        #study-screen {
+          padding: 1.5rem;
+          max-width: 100%;
         }
         .study-header {
-          flex-direction: row;
+          flex-direction: column;
+          gap: 1rem;
+          align-items: flex-start;
         }
-        #user-input {
-          font-size: 16px;
+        .study-header-right {
+          width: 100%;
+          justify-content: space-between;
         }
-        #study-screen {
-          margin-top: 20px;
-          margin-bottom: 100px;
+        .controls {
+          flex-direction: column;
         }
-        #settings-panel {
-          left: 5%;
-          right: 5%;
-          width: 90%;
-          top: 60px;
+        .action-group {
+          width: 100%;
+          justify-content: space-between;
+        }
+        .action-group button {
+          flex: 1;
         }
       }
     </style>
   </head>
   <body>
-    <header>
-      <div class="brand-area">
-        <h1>
-          Bidirectional<span style="color: var(--primary)">Translation</span>
-        </h1>
+    <!-- Overlay e Menu Lateral -->
+    <div id="sidebar-overlay" class="hidden"></div>
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <h2>Configurações</h2>
         <button
-          id="btn-settings"
-          class="btn btn-outline"
-          style="padding: 4px 10px; min-width: 40px; margin-left: 5px"
-          title="Configurações e Exportação"
+          id="btn-sidebar-close"
+          class="btn btn-outline btn-icon"
+          title="Fechar Menu"
         >
-          ⚙️
+          ✕
         </button>
       </div>
 
-      <!-- Painel de Configurações / Exportação -->
-      <div id="settings-panel">
+      <div class="sidebar-content">
+        <div class="setup-container">
+          <div class="file-input-wrapper">
+            <button class="btn btn-outline">📄 Fonte</button>
+            <input type="file" id="file-source" accept=".txt,.srt" />
+          </div>
+          <div class="file-input-wrapper">
+            <button class="btn btn-outline">📄 Alvo</button>
+            <input type="file" id="file-target" accept=".txt,.srt" />
+          </div>
+          <div class="file-input-wrapper">
+            <button class="btn btn-outline">📂 Áudio (opcional)</button>
+            <input
+              type="file"
+              id="folder-audio"
+              webkitdirectory
+              directory
+              multiple
+            />
+          </div>
+          <span class="media-choice-label">ou</span>
+          <div
+            class="youtube-input-wrapper"
+            title="Apenas uma mídia fica ativa por sessão."
+          >
+            <input type="url" id="youtube-url" placeholder="URL do YouTube" />
+            <button type="button" id="btn-youtube-load" class="btn btn-outline">
+              ▶️ YouTube
+            </button>
+          </div>
+          <span class="media-choice-label">ou</span>
+          <div class="file-input-wrapper">
+            <button class="btn btn-outline">🎬 Vídeo local</button>
+            <input
+              type="file"
+              id="file-video"
+              accept="video/*,.mp4,.webm,.mov,.m4v"
+            />
+          </div>
+          <div class="range-wrapper">
+            <label for="range-start">Frases</label>
+            <div
+              style="
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <input
+                type="number"
+                id="range-start"
+                class="range-input"
+                min="1"
+                step="1"
+                value="1"
+                disabled
+              />
+              <span class="range-separator">até</span>
+              <input
+                type="number"
+                id="range-end"
+                class="range-input"
+                min="1"
+                step="1"
+                value="1"
+                disabled
+              />
+              <button
+                type="button"
+                id="btn-range-all"
+                class="btn btn-outline"
+                style="padding: 0.25rem 0.6rem; font-size: 0.8rem"
+                disabled
+              >
+                Todas
+              </button>
+            </div>
+          </div>
+          <button
+            id="btn-start"
+            class="btn"
+            disabled
+            style="
+              width: 100%;
+              justify-content: center;
+              padding: 0.75rem;
+              font-size: 1rem;
+              margin-top: 0.5rem;
+            "
+          >
+            Iniciar Sessão
+          </button>
+        </div>
+
+        <hr />
+
         <h4>Aparência</h4>
         <div class="settings-group">
-          <button id="btn-theme" class="btn btn-outline" style="width: 100%">
+          <button id="btn-theme" class="btn btn-outline">
             ◑ Alternar Tema
           </button>
         </div>
 
-        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0" />
+        <hr />
 
         <h4>Progresso (JSON)</h4>
         <div class="settings-group">
           <button id="btn-export" class="btn btn-outline" disabled>
-            💾 Salvar Progresso (JSON)
+            💾 Salvar Progresso
           </button>
           <button class="btn btn-outline" id="btn-import-trigger">
             📥 Carregar Progresso
@@ -572,14 +895,15 @@
           />
         </div>
 
-        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0" />
+        <hr />
 
         <h4>Arquivos Editados (TXT)</h4>
         <p
           style="
             font-size: 0.8rem;
             color: var(--text-muted);
-            margin-bottom: 5px;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
           "
         >
           Baixe os arquivos com as correções feitas:
@@ -593,57 +917,21 @@
           </button>
         </div>
       </div>
+    </aside>
 
-      <div class="setup-container">
-        <div class="file-input-wrapper">
-          <button class="btn btn-outline">📄 Fonte</button>
-          <input type="file" id="file-source" accept=".txt,.srt" />
-        </div>
-        <div class="file-input-wrapper">
-          <button class="btn btn-outline">📄 Alvo</button>
-          <input type="file" id="file-target" accept=".txt,.srt" />
-        </div>
-        <div class="file-input-wrapper">
-          <button class="btn btn-outline">📂 Áudio (opcional)</button>
-          <input
-            type="file"
-            id="folder-audio"
-            webkitdirectory
-            directory
-            multiple
-          />
-        </div>
-        <div class="range-wrapper">
-          <label for="range-start">Frases</label>
-          <input
-            type="number"
-            id="range-start"
-            class="range-input"
-            min="1"
-            step="1"
-            value="1"
-            disabled
-          />
-          <span class="range-separator">até</span>
-          <input
-            type="number"
-            id="range-end"
-            class="range-input"
-            min="1"
-            step="1"
-            value="1"
-            disabled
-          />
-          <button
-            type="button"
-            id="btn-range-all"
-            class="btn btn-outline range-btn"
-            disabled
-          >
-            Todas
-          </button>
-        </div>
-        <button id="btn-start" class="btn" disabled>Iniciar</button>
+    <header>
+      <div class="brand-area">
+        <button
+          id="btn-menu"
+          class="btn btn-outline btn-icon"
+          title="Menu de Configurações"
+          style="margin-right: 0.5rem"
+        >
+          ☰
+        </button>
+        <h1>
+          Bidirectional<span style="color: var(--primary)">Translation</span>
+        </h1>
       </div>
     </header>
 
@@ -651,88 +939,145 @@
       <!-- Welcome / Empty State -->
       <div id="welcome-screen">
         <h2>Assistente de Tradução Bidirecional</h2>
-        <p style="margin-top: 10px">
-          Carregue os arquivos de fonte e alvo (.txt ou .srt) para começar.
+        <p style="margin-top: 1rem">
+          Abra o menu lateral (☰) e carregue os arquivos de fonte e alvo (.txt
+          ou .srt) para começar.
         </p>
-        <p style="margin-top: 10px">
-          Se quiser, você também pode selecionar a pasta de áudio ao mesmo tempo
-          antes de clicar em Iniciar.
+        <p style="margin-top: 0.5rem">
+          Se quiser, você também pode selecionar a mídia (áudio ou vídeo) antes
+          de clicar em Iniciar Sessão.
         </p>
-        <p style="margin-top: 20px; font-size: 0.85rem; opacity: 0.7">
-          Use o botão ⚙️ para baixar os arquivos corrigidos caso faça edições.
+        <p
+          style="
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+          "
+        >
+          Use as opções no menu para baixar os arquivos corrigidos caso faça
+          edições durante o estudo.
         </p>
       </div>
 
-      <!-- Study Card -->
-      <div id="study-screen">
-        <div class="study-header">
-          <span id="progress-indicator">Frase 0 / 0</span>
+      <!-- Wrapper para Modo Lado a Lado -->
+      <div id="study-layout">
+        <div id="media-column">
+          <!-- YouTube Player -->
+          <div id="youtube-player-card">
+            <div class="youtube-player-header">
+              <span>Vídeo do YouTube ativo</span>
+              <button
+                id="btn-youtube-clear"
+                class="btn btn-outline btn-icon"
+                title="Remover vídeo"
+              >
+                ✕
+              </button>
+            </div>
+            <div class="youtube-player-shell">
+              <div id="youtube-player"></div>
+            </div>
+          </div>
 
-          <div class="study-header-right">
-            <span id="mode-display" class="mode-badge">Sequencial</span>
-            <button
-              id="btn-edit-phrase"
-              class="btn btn-outline"
-              style="padding: 2px 8px; font-size: 0.9rem"
-              title="Editar Frase Atual"
-            >
-              ✏️
-            </button>
-            <button
-              id="btn-toggle-fav"
-              class="btn btn-outline"
-              style="padding: 2px 8px; font-size: 0.9rem"
-            >
-              ★
-            </button>
+          <!-- Local Video Player -->
+          <div id="local-video-player-card">
+            <div class="youtube-player-header">
+              <span id="local-video-title">Vídeo local ativo</span>
+              <button
+                id="btn-local-video-clear"
+                class="btn btn-outline btn-icon"
+                title="Remover vídeo local"
+              >
+                ✕
+              </button>
+            </div>
+            <div class="youtube-player-shell">
+              <video
+                id="local-video-player"
+                controls
+                playsinline
+                preload="metadata"
+              ></video>
+            </div>
           </div>
         </div>
 
-        <div id="phrase-display" class="phrase-source">
-          <!-- Frase em PT aparece aqui -->
-        </div>
+        <!-- Study Card -->
+        <div id="study-screen">
+          <div class="study-header">
+            <span id="progress-indicator">Frase 0 / 0</span>
 
-        <div class="input-area">
-          <textarea
-            id="user-input"
-            placeholder="Digite a tradução..."
-            spellcheck="false"
-            autocomplete="off"
-          ></textarea>
-        </div>
-
-        <div id="feedback-area">
-          <div
-            id="diff-container"
-            style="font-size: 1.1rem; line-height: 1.6"
-          ></div>
-          <div id="original-ref" class="original-reference"></div>
-        </div>
-
-        <div class="controls">
-          <div class="action-group">
-            <button id="btn-prev" class="btn" title="Frase anterior">←</button>
-            <button id="btn-check" class="btn">Verificar (Enter)</button>
-            <button id="btn-next" class="btn hidden" title="Próxima frase">
-              Próxima →
-            </button>
+            <div class="study-header-right">
+              <span id="mode-display" class="mode-badge">Sequencial</span>
+              <button
+                id="btn-edit-phrase"
+                class="btn btn-outline btn-icon"
+                title="Editar Frase Atual"
+              >
+                ✏️
+              </button>
+              <button
+                id="btn-toggle-fav"
+                class="btn btn-outline btn-icon"
+                title="Favoritar"
+              >
+                ★
+              </button>
+            </div>
           </div>
 
-          <div class="action-group" style="margin-left: auto">
-            <button
-              id="btn-toggle-mode"
-              class="btn btn-outline"
-              title="Alternar Sequencial/Aleatório"
-            >
-              🔀
-            </button>
-            <button
-              id="btn-exclude"
-              class="btn btn-danger"
-              title="Excluir frase"
-            >
-              🗑️
-            </button>
+          <div id="phrase-display" class="phrase-source">
+            <!-- Frase em PT aparece aqui -->
+          </div>
+
+          <div class="input-area">
+            <textarea
+              id="user-input"
+              placeholder="Digite a tradução..."
+              spellcheck="false"
+              autocomplete="off"
+            ></textarea>
+          </div>
+
+          <div id="feedback-area">
+            <div
+              id="diff-container"
+              style="font-size: 1.15rem; line-height: 1.7"
+            ></div>
+            <div id="original-ref" class="original-reference"></div>
+          </div>
+
+          <div class="controls">
+            <div class="action-group">
+              <button
+                id="btn-prev"
+                class="btn btn-outline"
+                title="Frase anterior"
+              >
+                ← Anterior
+              </button>
+              <button id="btn-check" class="btn">Verificar (Enter)</button>
+              <button id="btn-next" class="btn hidden" title="Próxima frase">
+                Próxima →
+              </button>
+            </div>
+
+            <div class="action-group">
+              <button
+                id="btn-toggle-mode"
+                class="btn btn-outline btn-icon"
+                title="Alternar Sequencial/Aleatório"
+              >
+                🔀
+              </button>
+              <button
+                id="btn-exclude"
+                class="btn btn-danger btn-icon"
+                title="Excluir frase"
+              >
+                🗑️
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -740,7 +1085,9 @@
 
     <!-- Modal de Edição -->
     <dialog id="edit-modal">
-      <h3 style="margin-bottom: 20px">Editar Frase</h3>
+      <h3 style="margin-bottom: 1.5rem; color: var(--text-main)">
+        Editar Frase
+      </h3>
       <div class="modal-field">
         <label>Fonte (O que você vê):</label>
         <textarea id="edit-source"></textarea>
@@ -783,18 +1130,49 @@
         });
       }
 
+      const VIDEO_LEAD_IN = 0.1; // 0.15 ajuste do início da legenda (começa um pouco antes)
+      const VIDEO_TAIL_OUT = 0.1; // 0.25 ajuste do final da legenda (estende no final)
+      const VIDEO_CLIP_END_EPSILON = 0.08;
+
+      function parseSrtTimestampToSeconds(timestamp) {
+        const match = timestamp
+          .trim()
+          .match(/^(\d{2}):(\d{2}):(\d{2})[,.](\d{3})$/);
+        if (!match) return null;
+        const [, hh, mm, ss, ms] = match;
+        return (
+          Number(hh) * 3600 + Number(mm) * 60 + Number(ss) + Number(ms) / 1000
+        );
+      }
+
       function parseSRT(text) {
-        const blocks = text.trim().replace(/\r\n/g, '\n').split('\n\n');
+        const blocks = text
+          .trim()
+          .replace(/\r\n/g, '\n')
+          .split(/\n\s*\n/);
         return blocks
           .map((block) => {
             const lines = block.split('\n');
+            const timingLine = lines.find((line) => line.includes('-->'));
+            let start = null;
+            let end = null;
+            if (timingLine) {
+              const [startRaw, endRawWithSettings] = timingLine.split('-->');
+              const endRaw = (endRawWithSettings || '').trim().split(/\s+/)[0];
+              start = parseSrtTimestampToSeconds(startRaw);
+              end = parseSrtTimestampToSeconds(endRaw);
+            }
             const textLines = lines.filter(
-              (line) => !line.match(/^\d+$/) && !line.includes('-->')
+              (line) => !line.match(/^\d+$/) && !line.includes('-->'),
             );
-            let cleanText = textLines.join(' ').replace(/<[^>]*>/g, '');
-            return cleanText.trim();
+            const cleanText = textLines
+              .join(' ')
+              .replace(/<[^>]*>/g, '')
+              .trim();
+            if (!cleanText) return null;
+            return { text: cleanText, start, end };
           })
-          .filter((t) => t.length > 0);
+          .filter(Boolean);
       }
 
       function parseTXT(text) {
@@ -803,7 +1181,18 @@
           .replace(/\r\n/g, '\n')
           .split('\n')
           .map((l) => l.trim())
-          .filter((l) => l.length > 0);
+          .filter(Boolean)
+          .map((text) => ({ text, start: null, end: null }));
+      }
+
+      function getLineText(line) {
+        return typeof line === 'string' ? line : line?.text || '';
+      }
+      function getLineStart(line) {
+        return typeof line === 'object' && line ? line.start : null;
+      }
+      function getLineEnd(line) {
+        return typeof line === 'object' && line ? line.end : null;
       }
 
       function normalizeApostrophes(str) {
@@ -886,7 +1275,7 @@
               // - extra   => consumir token do usuário
               dp[i][j] = Math.min(
                 dp[i - 1][j] + 1, // missing
-                dp[i][j - 1] + 1 // extra
+                dp[i][j - 1] + 1, // extra
               );
             }
           }
@@ -965,19 +1354,19 @@
           .map((op) => {
             if (op.type === 'match') {
               return `<span class="diff-word diff-correct">${escapeHtml(
-                op.target
+                op.target,
               )}</span>`;
             }
 
             if (op.type === 'missing') {
               return `<span class="diff-word diff-missing">${escapeHtml(
-                op.target
+                op.target,
               )}</span>`;
             }
 
             if (op.type === 'extra') {
               return `<span class="diff-word diff-wrong" title="Digitado: ${escapeHtml(
-                op.user
+                op.user,
               )}">${escapeHtml(op.user)}</span>`;
             }
 
@@ -996,6 +1385,10 @@
         state.currentAudio.onplay = null;
         state.currentAudio = null;
         els.originalRef.classList.remove('playing-audio');
+      }
+
+      function resetCurrentVideoClipState() {
+        state.media.clipEnded = false;
       }
 
       function getCurrentItemAudioSrc() {
@@ -1026,7 +1419,7 @@
 
       function playCurrentAudio(
         fromStart = false,
-        { notifyIfMissing = false, toggleIfPlaying = false } = {}
+        { notifyIfMissing = false, toggleIfPlaying = false } = {},
       ) {
         const audio = ensureCurrentAudio();
         if (!audio) {
@@ -1072,6 +1465,451 @@
         setTimeout(() => (t.style.opacity = '0'), duration);
       }
 
+      function clearMp3Media({ resetInput = false } = {}) {
+        stopAndCleanupCurrentAudio();
+        state.pendingAudioFiles = [];
+        if (state.data)
+          state.data.forEach((item) => {
+            if (item.audioSrc) {
+              URL.revokeObjectURL(item.audioSrc);
+              delete item.audioSrc;
+            }
+          });
+        if (resetInput) {
+          els.folderAudio.value = '';
+          const btn = els.folderAudio.previousElementSibling;
+          btn.innerHTML = '📂 Áudio (opcional)';
+          btn.classList.remove('btn-loaded');
+        }
+      }
+
+      function clearYoutubeClipTimer() {
+        if (state.media.clipTimer) {
+          clearTimeout(state.media.clipTimer);
+          state.media.clipTimer = null;
+        }
+      }
+
+      function pauseYoutubeVideo({ markClipEnded = false } = {}) {
+        clearYoutubeClipTimer();
+        state.media.clipEnded = markClipEnded;
+        if (state.youtubePlayer && state.media.youtubeReady) {
+          try {
+            state.youtubePlayer.pauseVideo();
+          } catch (e) {
+            console.log('Erro ao pausar YouTube:', e);
+          }
+        }
+        els.originalRef.classList.remove('playing-audio');
+      }
+
+      function clearYoutubeMedia({ resetInput = false } = {}) {
+        pauseYoutubeVideo();
+        state.media.youtubeUrl = '';
+        state.media.youtubeVideoId = '';
+        state.media.youtubeReady = false;
+        if (state.youtubePlayer) {
+          try {
+            state.youtubePlayer.destroy();
+          } catch (e) {
+            console.log('Erro ao destruir player:', e);
+          }
+          state.youtubePlayer = null;
+        }
+        els.youtubePlayerCard.classList.remove('active');
+        const shell = document.querySelector('.youtube-player-shell');
+        if (shell) {
+          shell.innerHTML = '<div id="youtube-player"></div>';
+          els.youtubePlayer = document.getElementById('youtube-player');
+        }
+        if (resetInput) els.youtubeUrl.value = '';
+      }
+
+      function clearLocalVideoClipTimer() {
+        if (state.media.clipTimer) {
+          clearTimeout(state.media.clipTimer);
+          state.media.clipTimer = null;
+        }
+      }
+
+      function pauseLocalVideo({ markClipEnded = false } = {}) {
+        clearLocalVideoClipTimer();
+        state.media.clipEnded = markClipEnded;
+        if (els.localVideoPlayer) els.localVideoPlayer.pause();
+        els.originalRef.classList.remove('playing-audio');
+      }
+
+      function clearLocalVideoMedia({ resetInput = false } = {}) {
+        pauseLocalVideo();
+
+        if (state.localVideoObjectUrl) {
+          URL.revokeObjectURL(state.localVideoObjectUrl);
+          state.localVideoObjectUrl = '';
+        }
+
+        state.media.localVideoName = '';
+        state.media.localVideoReady = false;
+
+        els.localVideoPlayer.removeAttribute('src');
+        els.localVideoPlayer.load();
+        els.localVideoPlayerCard.classList.remove('active');
+        els.localVideoTitle.textContent = 'Vídeo local ativo';
+
+        if (resetInput) {
+          els.fileVideo.value = '';
+          const btn = els.fileVideo.previousElementSibling;
+          btn.innerHTML = '🎬 Vídeo local';
+          btn.classList.remove('btn-loaded');
+        }
+      }
+
+      function activateLocalVideoMedia(file) {
+        if (!file) return;
+
+        pauseCurrentMedia();
+        clearMp3Media({ resetInput: true });
+        clearYoutubeMedia({ resetInput: true });
+        clearLocalVideoMedia();
+
+        state.localVideoObjectUrl = URL.createObjectURL(file);
+        state.media.localVideoName = file.name;
+        state.media.localVideoReady = false;
+
+        els.localVideoPlayer.src = state.localVideoObjectUrl;
+        els.localVideoTitle.textContent = `Vídeo local ativo: ${file.name}`;
+        els.localVideoPlayerCard.classList.add('active');
+
+        els.localVideoPlayer.onloadedmetadata = () => {
+          state.media.localVideoReady = true;
+          showToast('Vídeo local ativo. MP3 local e YouTube desativados.');
+        };
+        els.localVideoPlayer.onplay = () =>
+          els.originalRef.classList.add('playing-audio');
+        els.localVideoPlayer.onpause = () =>
+          els.originalRef.classList.remove('playing-audio');
+        els.localVideoPlayer.onended = () =>
+          els.originalRef.classList.remove('playing-audio');
+
+        setMediaMode('localVideo');
+
+        const btn = els.fileVideo.previousElementSibling;
+        btn.innerHTML = `✅ ${file.name.substring(0, 15)}...`;
+        btn.classList.add('btn-loaded');
+      }
+
+      function playCurrentLocalVideoClip(fromStart = true) {
+        if (!els.localVideoPlayer || !state.media.localVideoReady) {
+          showToast('O vídeo local ainda não está pronto.');
+          return;
+        }
+
+        const bounds = getCurrentVideoClipBounds();
+        if (!bounds) {
+          showToast(
+            'A frase atual não tem timestamps para tocar o vídeo local.',
+          );
+          return;
+        }
+
+        clearLocalVideoClipTimer();
+
+        const video = els.localVideoPlayer;
+        const { clipStart, clipEnd } = bounds;
+        const now = video.currentTime || clipStart;
+
+        const isOutsideCurrentClip =
+          state.media.clipEnded ||
+          now < clipStart ||
+          now >= clipEnd - VIDEO_CLIP_END_EPSILON;
+
+        const shouldSeekToStart = fromStart || isOutsideCurrentClip;
+        const startAt = shouldSeekToStart ? clipStart : now;
+        const durationMs = Math.max(300, (clipEnd - startAt) * 1000);
+
+        try {
+          state.media.clipEnded = false;
+          if (shouldSeekToStart) video.currentTime = clipStart;
+          video.play().catch((e) => {
+            console.log('Erro ao tocar vídeo local:', e);
+            showToast('Erro ao tentar tocar o vídeo local.');
+          });
+          state.media.clipTimer = setTimeout(
+            () => pauseLocalVideo({ markClipEnded: true }),
+            durationMs,
+          );
+        } catch (e) {
+          console.log('Erro ao tocar trecho do vídeo local:', e);
+          showToast('Erro ao tentar tocar o trecho do vídeo local.');
+        }
+      }
+
+      function setMediaMode(mode) {
+        state.media.mode = mode;
+        els.youtubePlayerCard.classList.toggle('active', mode === 'youtube');
+        els.localVideoPlayerCard.classList.toggle(
+          'active',
+          mode === 'localVideo',
+        );
+
+        const mediaColumn = document.getElementById('media-column');
+        if (mode === 'youtube' || mode === 'localVideo') {
+          mediaColumn.classList.add('active');
+        } else {
+          mediaColumn.classList.remove('active');
+        }
+      }
+
+      function extractYouTubeVideoId(url) {
+        try {
+          const parsed = new URL(url.trim());
+          const host = parsed.hostname.replace(/^www\./, '');
+          if (host === 'youtu.be')
+            return parsed.pathname.split('/').filter(Boolean)[0] || null;
+          if (host.endsWith('youtube.com')) {
+            if (parsed.pathname === '/watch')
+              return parsed.searchParams.get('v');
+            const parts = parsed.pathname.split('/').filter(Boolean);
+            if (['embed', 'shorts', 'live'].includes(parts[0]))
+              return parts[1] || null;
+          }
+        } catch (e) {
+          return null;
+        }
+        return null;
+      }
+
+      function loadYouTubeIframeApi() {
+        return new Promise((resolve) => {
+          if (window.YT && window.YT.Player) {
+            state.media.youtubeApiReady = true;
+            resolve();
+            return;
+          }
+          const previousCallback = window.onYouTubeIframeAPIReady;
+          window.onYouTubeIframeAPIReady = () => {
+            if (typeof previousCallback === 'function') previousCallback();
+            state.media.youtubeApiReady = true;
+            resolve();
+          };
+          if (
+            !document.querySelector(
+              'script[src="https://www.youtube.com/iframe_api"]',
+            )
+          ) {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+          }
+        });
+      }
+
+      function getYouTubeEmbedOrigin() {
+        // O YouTube exige identificação por HTTP Referer em embeds.
+        // Em arquivo local (file://), o navegador normalmente não envia Referer
+        // e window.location.origin vira "null", o que pode causar o erro 153.
+        if (
+          window.location.protocol === 'http:' ||
+          window.location.protocol === 'https:'
+        ) {
+          return window.location.origin;
+        }
+        return '';
+      }
+
+      function applyYouTubeIframeAttributes() {
+        const iframe = document.querySelector('#youtube-player-card iframe');
+        if (!iframe) return;
+        iframe.setAttribute(
+          'referrerpolicy',
+          'strict-origin-when-cross-origin',
+        );
+        iframe.setAttribute(
+          'allow',
+          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+        );
+        iframe.setAttribute('allowfullscreen', '');
+      }
+
+      async function activateYouTubeMedia(url) {
+        const videoId = extractYouTubeVideoId(url);
+        if (!videoId) {
+          showToast('URL do YouTube inválida.');
+          return;
+        }
+
+        if (window.location.protocol === 'file:') {
+          showToast(
+            'Para evitar o erro 153, abra esta página por um servidor local, não direto como file://.',
+            6000,
+          );
+        }
+
+        pauseCurrentMedia();
+        clearMp3Media({ resetInput: true });
+        clearLocalVideoMedia({ resetInput: true });
+        clearYoutubeMedia();
+        setMediaMode('youtube');
+        state.media.youtubeUrl = url.trim();
+        state.media.youtubeVideoId = videoId;
+        els.youtubePlayerCard.classList.add('active');
+        await loadYouTubeIframeApi();
+
+        const origin = getYouTubeEmbedOrigin();
+        const playerVars = {
+          enablejsapi: 1,
+          playsinline: 1,
+          rel: 0,
+        };
+        if (origin) playerVars.origin = origin;
+
+        state.youtubePlayer = new YT.Player('youtube-player', {
+          width: '100%',
+          height: '100%',
+          videoId,
+          playerVars,
+          events: {
+            onReady: () => {
+              applyYouTubeIframeAttributes();
+              state.media.youtubeReady = true;
+              showToast('YouTube ativo. MP3 local e vídeo local desativados.');
+            },
+            onStateChange: (event) => {
+              applyYouTubeIframeAttributes();
+              if (event.data === YT.PlayerState.PLAYING)
+                els.originalRef.classList.add('playing-audio');
+              else els.originalRef.classList.remove('playing-audio');
+            },
+            onError: (event) => {
+              applyYouTubeIframeAttributes();
+              if (event && event.data === 153) {
+                showToast(
+                  'Erro 153: o YouTube não recebeu Referer válido. Use um servidor local, como http://localhost:8000.',
+                  7000,
+                );
+              } else {
+                showToast(
+                  'Não foi possível carregar o vídeo. O estudo continuará sem bloquear.',
+                );
+              }
+            },
+          },
+        });
+      }
+
+      function getCurrentVideoClipBounds() {
+        const item = state.data[state.currentIndex];
+        if (!item || item.startTime === null || item.endTime === null) {
+          return null;
+        }
+
+        const clipStart = Math.max(0, item.startTime - VIDEO_LEAD_IN);
+        const clipEnd = Math.max(
+          clipStart + 0.1,
+          item.endTime + VIDEO_TAIL_OUT,
+        );
+
+        return { clipStart, clipEnd };
+      }
+
+      function playCurrentVideoClip(fromStart = true) {
+        if (!state.youtubePlayer || !state.media.youtubeReady) {
+          showToast('O vídeo ainda não está pronto.');
+          return;
+        }
+        const bounds = getCurrentVideoClipBounds();
+        if (!bounds) {
+          showToast('A frase atual não tem timestamps para tocar no YouTube.');
+          return;
+        }
+
+        clearYoutubeClipTimer();
+        const { clipStart, clipEnd } = bounds;
+        const now =
+          typeof state.youtubePlayer.getCurrentTime === 'function'
+            ? state.youtubePlayer.getCurrentTime()
+            : clipStart;
+
+        // Se o vídeo já está no fim do trecho, ou fora do trecho da frase atual,
+        // reinicia do começo do clipe. Isso evita que cliques sucessivos avancem
+        // para as próximas frases, diferente do comportamento desejado de MP3 individual.
+        const isOutsideCurrentClip =
+          state.media.clipEnded ||
+          now < clipStart ||
+          now >= clipEnd - VIDEO_CLIP_END_EPSILON;
+
+        const shouldSeekToStart = fromStart || isOutsideCurrentClip;
+        const startAt = shouldSeekToStart ? clipStart : now;
+        const durationMs = Math.max(300, (clipEnd - startAt) * 1000);
+        try {
+          state.media.clipEnded = false;
+          if (shouldSeekToStart) state.youtubePlayer.seekTo(clipStart, true);
+          state.youtubePlayer.playVideo();
+          state.media.clipTimer = setTimeout(
+            () => pauseYoutubeVideo({ markClipEnded: true }),
+            durationMs,
+          );
+        } catch (e) {
+          console.log('Erro ao tocar trecho do YouTube:', e);
+          showToast('Erro ao tentar tocar o trecho do YouTube.');
+        }
+      }
+
+      function playCurrentMedia(fromStart = false, options = {}) {
+        if (state.media.mode === 'mp3') {
+          playCurrentAudio(fromStart, options);
+          return;
+        }
+        if (state.media.mode === 'youtube') {
+          playCurrentVideoClip(Boolean(fromStart || options.fromStart));
+          return;
+        }
+        if (state.media.mode === 'localVideo') {
+          playCurrentLocalVideoClip(Boolean(fromStart || options.fromStart));
+        }
+      }
+      function pauseCurrentMedia() {
+        if (state.media.mode === 'mp3') pauseCurrentAudio();
+        if (state.media.mode === 'youtube') pauseYoutubeVideo();
+        if (state.media.mode === 'localVideo') pauseLocalVideo();
+      }
+      function toggleCurrentMedia() {
+        if (state.media.mode === 'mp3') {
+          playCurrentAudio(false, {
+            notifyIfMissing: true,
+            toggleIfPlaying: true,
+          });
+          return;
+        }
+        if (state.media.mode === 'youtube') {
+          if (!state.youtubePlayer || !state.media.youtubeReady) {
+            showToast('O vídeo ainda não está pronto.');
+            return;
+          }
+          const stateCode = state.youtubePlayer.getPlayerState();
+          if (stateCode === YT.PlayerState.PLAYING) pauseYoutubeVideo();
+          else playCurrentVideoClip(false);
+          return;
+        }
+        if (state.media.mode === 'localVideo') {
+          if (!els.localVideoPlayer || !state.media.localVideoReady) {
+            showToast('O vídeo local ainda não está pronto.');
+            return;
+          }
+          if (!els.localVideoPlayer.paused) pauseLocalVideo();
+          else playCurrentLocalVideoClip(false);
+          return;
+        }
+        showToast('Nenhuma mídia ativa para a frase atual.');
+      }
+      function restartCurrentMedia() {
+        if (state.media.mode === 'mp3') restartCurrentAudio();
+        else if (state.media.mode === 'youtube') playCurrentVideoClip(true);
+        else if (state.media.mode === 'localVideo')
+          playCurrentLocalVideoClip(true);
+        else showToast('Nenhuma mídia ativa para a frase atual.');
+      }
+
       // Função para baixar texto puro
       function downloadTextFile(contentArray, filename) {
         const textContent = contentArray.join('\n');
@@ -1097,6 +1935,19 @@
         pendingAudioFiles: [],
         selectedRange: { start: 1, end: 1 },
         currentAudio: null,
+        youtubePlayer: null,
+        localVideoObjectUrl: '',
+        media: {
+          mode: 'none', // 'none' | 'mp3' | 'youtube' | 'localVideo'
+          youtubeUrl: '',
+          youtubeVideoId: '',
+          youtubeReady: false,
+          youtubeApiReady: false,
+          localVideoName: '',
+          localVideoReady: false,
+          clipTimer: null,
+          clipEnded: false,
+        },
         meta: {
           sourceName: '',
           targetName: '',
@@ -1113,6 +1964,18 @@
         fileTarget: document.getElementById('file-target'),
         fileImport: document.getElementById('file-import'),
         folderAudio: document.getElementById('folder-audio'),
+        youtubeUrl: document.getElementById('youtube-url'),
+        btnYoutubeLoad: document.getElementById('btn-youtube-load'),
+        btnYoutubeClear: document.getElementById('btn-youtube-clear'),
+        youtubePlayerCard: document.getElementById('youtube-player-card'),
+        youtubePlayer: document.getElementById('youtube-player'),
+        fileVideo: document.getElementById('file-video'),
+        btnLocalVideoClear: document.getElementById('btn-local-video-clear'),
+        localVideoPlayerCard: document.getElementById(
+          'local-video-player-card',
+        ),
+        localVideoPlayer: document.getElementById('local-video-player'),
+        localVideoTitle: document.getElementById('local-video-title'),
         rangeStart: document.getElementById('range-start'),
         rangeEnd: document.getElementById('range-end'),
         btnRangeAll: document.getElementById('btn-range-all'),
@@ -1123,11 +1986,13 @@
         btnDlSource: document.getElementById('btn-dl-source'),
         btnDlTarget: document.getElementById('btn-dl-target'),
 
-        header: document.querySelector('header'),
-        btnSettings: document.getElementById('btn-settings'),
-        settingsPanel: document.getElementById('settings-panel'),
+        btnMenu: document.getElementById('btn-menu'),
+        sidebar: document.getElementById('sidebar'),
+        btnSidebarClose: document.getElementById('btn-sidebar-close'),
+        sidebarOverlay: document.getElementById('sidebar-overlay'),
 
         welcomeScreen: document.getElementById('welcome-screen'),
+        studyLayout: document.getElementById('study-layout'),
         studyScreen: document.getElementById('study-screen'),
 
         progress: document.getElementById('progress-indicator'),
@@ -1237,7 +2102,7 @@
         });
 
         const sortedFiles = [...fileArray].sort((a, b) =>
-          collator.compare(a.name, b.name)
+          collator.compare(a.name, b.name),
         );
 
         let count = 0;
@@ -1259,25 +2124,28 @@
 
       async function handleAudioFolder(files) {
         const fileArray = Array.from(files).filter((f) =>
-          f.name.toLowerCase().endsWith('.mp3')
+          f.name.toLowerCase().endsWith('.mp3'),
         );
         if (fileArray.length === 0) {
           showToast('Nenhum MP3 encontrado.');
           return;
         }
-
+        pauseCurrentMedia();
+        clearYoutubeMedia({ resetInput: true });
+        clearLocalVideoMedia({ resetInput: true });
+        setMediaMode('mp3');
         state.pendingAudioFiles = fileArray;
-
         const btn = els.folderAudio.previousElementSibling;
         btn.innerHTML = `✅ ${fileArray.length} Áudios`;
         btn.classList.add('btn-loaded');
-
         if (state.data && state.data.length > 0) {
           const count = bindAudioFilesToData(state.pendingAudioFiles);
-          showToast(`${count} áudios vinculados!`);
+          showToast(
+            `${count} áudios vinculados. MP3 local ativo; YouTube e vídeo local desativados.`,
+          );
         } else {
           showToast(
-            `${fileArray.length} áudios selecionados. Eles serão vinculados ao iniciar.`
+            `${fileArray.length} áudios selecionados. MP3 local ativo; YouTube e vídeo local desativados.`,
           );
         }
       }
@@ -1295,7 +2163,21 @@
         }
         if (lessonData.lastIndex !== undefined)
           state.currentIndex = lessonData.lastIndex;
-        if (notify) showToast(`Recuperado: ${lessonData.name || 'Dados Salvos'}`);
+        if (lessonData.mediaMode === 'youtube' && lessonData.youtubeUrl) {
+          els.youtubeUrl.value = lessonData.youtubeUrl;
+          activateYouTubeMedia(lessonData.youtubeUrl);
+        }
+        if (
+          lessonData.mediaMode === 'localVideo' &&
+          lessonData.localVideoName
+        ) {
+          showToast(
+            `Esta sessão usava o vídeo local "${lessonData.localVideoName}". Selecione esse arquivo novamente para reativá-lo.`,
+            6000,
+          );
+        }
+        if (notify)
+          showToast(`Recuperado: ${lessonData.name || 'Dados Salvos'}`);
       }
 
       function initData({ silent = false } = {}) {
@@ -1306,7 +2188,7 @@
 
           if (source.length !== target.length) {
             alert(
-              `Aviso: Fontes diferentes (${source.length} vs ${target.length}).`
+              `Aviso: Fontes diferentes (${source.length} vs ${target.length}).`,
             );
           }
 
@@ -1314,8 +2196,12 @@
           const { start, end } = getSelectedRange(total);
           state.selectedRange = { start, end };
 
-          state.meta.sourceHash = generateContentHash(source.join(''));
-          state.meta.targetHash = generateContentHash(target.join(''));
+          state.meta.sourceHash = generateContentHash(
+            source.map(getLineText).join(''),
+          );
+          state.meta.targetHash = generateContentHash(
+            target.map(getLineText).join(''),
+          );
           if (els.fileSource.files[0])
             state.meta.sourceName = els.fileSource.files[0].name;
           if (els.fileTarget.files[0])
@@ -1328,8 +2214,10 @@
             state.data.push({
               id: i - (start - 1),
               originalIndex: i,
-              pt: source[i],
-              en: target[i],
+              pt: getLineText(source[i]),
+              en: getLineText(target[i]),
+              startTime: getLineStart(target[i]) ?? getLineStart(source[i]),
+              endTime: getLineEnd(target[i]) ?? getLineEnd(source[i]),
               favorite: false,
               excluded: false,
             });
@@ -1339,7 +2227,7 @@
             const count = bindAudioFilesToData(state.pendingAudioFiles);
             if (!silent) {
               showToast(
-                `${count} áudios vinculados para o intervalo selecionado.`
+                `${count} áudios vinculados para o intervalo selecionado.`,
               );
             }
           }
@@ -1350,7 +2238,7 @@
           ) {
             restoreLessonFromHistory(
               state.globalHistory[state.currentLessonKey],
-			  { notify: !silent }
+              { notify: !silent },
             );
           }
 
@@ -1362,7 +2250,7 @@
           console.error('Init Error:', error);
           if (error.message === 'intervalo_invalido') {
             alert(
-              'Intervalo inválido. O número inicial não pode ser maior que o final.'
+              'Intervalo inválido. O número inicial não pode ser maior que o final.',
             );
           } else {
             alert('Erro ao iniciar.');
@@ -1371,9 +2259,12 @@
       }
 
       function startSession() {
-        if (window.innerWidth <= 600) els.header.classList.add('menu-hidden');
         els.welcomeScreen.style.display = 'none';
-        els.studyScreen.style.display = 'block';
+        els.studyLayout.classList.add('active');
+
+        // Fecha a barra lateral automaticamente
+        els.sidebar.classList.remove('open');
+        els.sidebarOverlay.classList.add('hidden');
 
         if (
           !state.data[state.currentIndex] ||
@@ -1405,6 +2296,9 @@
           if (index === -1) return alert('Fim da lista!');
         }
         stopAndCleanupCurrentAudio();
+        pauseYoutubeVideo();
+        pauseLocalVideo();
+        resetCurrentVideoClipState();
         state.currentIndex = index;
         const item = state.data[state.currentIndex];
 
@@ -1447,7 +2341,7 @@
 
         els.diffContainer.innerHTML = html;
         els.originalRef.title =
-          'Clique: tocar/pausar | Duplo clique: reiniciar | Alt+P: tocar/pausar | Alt+R: reiniciar | Alt+I: recarregar frase | Alt+B: frase anterior';
+          'Clique: tocar/pausar mídia | Duplo clique: reiniciar mídia | Alt/⌥ ou Cmd/⌘ + P: tocar/pausar mídia | Alt/⌥ ou Cmd/⌘ + R: reiniciar mídia | Alt/⌥ ou Cmd/⌘ + I: recarregar frase | Alt/⌥ ou Cmd/⌘ + B: frase anterior';
         els.originalRef.textContent = item.en;
         els.feedbackArea.style.display = 'block';
 
@@ -1456,7 +2350,7 @@
         els.btnNext.classList.remove('hidden');
         els.btnNext.focus();
         state.isChecked = true;
-        playCurrentAudio();
+        playCurrentMedia(true, { notifyIfMissing: false });
       }
 
       function getPreviousIndex() {
@@ -1491,7 +2385,7 @@
         if (!state.isRandom && prevId >= state.currentIndex) {
           if (
             confirm(
-              'Você voltou ao início da lista! Deseja ir para a última frase disponível?'
+              'Você voltou ao início da lista! Deseja ir para a última frase disponível?',
             )
           ) {
             loadCard(prevId);
@@ -1561,6 +2455,10 @@
           lastIndex: state.currentIndex,
           favorites: state.data.filter((x) => x.favorite).map((x) => x.id),
           excluded: state.data.filter((x) => x.excluded).map((x) => x.id),
+          mediaMode: state.media.mode,
+          youtubeUrl: state.media.youtubeUrl,
+          youtubeVideoId: state.media.youtubeVideoId,
+          localVideoName: state.media.localVideoName,
         };
         state.globalHistory[state.currentLessonKey] = currentLessonData;
         const masterFile = {
@@ -1590,7 +2488,7 @@
             state.globalHistory[state.currentLessonKey]
           ) {
             restoreLessonFromHistory(
-              state.globalHistory[state.currentLessonKey]
+              state.globalHistory[state.currentLessonKey],
             );
             loadCard(state.currentIndex);
           }
@@ -1601,13 +2499,13 @@
       }
 
       els.btnTheme.addEventListener('click', () =>
-        document.body.classList.toggle('light-mode')
+        document.body.classList.toggle('light-mode'),
       );
       els.fileSource.addEventListener('change', (e) =>
-        handleFileUpload('source', e.target.files[0])
+        handleFileUpload('source', e.target.files[0]),
       );
       els.fileTarget.addEventListener('change', (e) =>
-        handleFileUpload('target', e.target.files[0])
+        handleFileUpload('target', e.target.files[0]),
       );
 
       els.rangeStart.addEventListener('change', () => {
@@ -1635,32 +2533,53 @@
         showToast(`Intervalo ajustado para todas as ${total} frases.`);
       });
 
-      els.btnSettings.addEventListener('click', (e) => {
-        e.stopPropagation();
-        els.settingsPanel.style.display =
-          els.settingsPanel.style.display === 'block' ? 'none' : 'block';
+      els.btnMenu.addEventListener('click', () => {
+        els.sidebar.classList.add('open');
+        els.sidebarOverlay.classList.remove('hidden');
       });
-      document.addEventListener('click', (e) => {
-        if (
-          !els.settingsPanel.contains(e.target) &&
-          e.target !== els.btnSettings
-        ) {
-          els.settingsPanel.style.display = 'none';
-        }
+      els.btnSidebarClose.addEventListener('click', () => {
+        els.sidebar.classList.remove('open');
+        els.sidebarOverlay.classList.add('hidden');
+      });
+      els.sidebarOverlay.addEventListener('click', () => {
+        els.sidebar.classList.remove('open');
+        els.sidebarOverlay.classList.add('hidden');
       });
 
       els.folderAudio.addEventListener('change', (e) =>
-        handleAudioFolder(e.target.files)
+        handleAudioFolder(e.target.files),
       );
+      els.btnYoutubeLoad.addEventListener('click', () =>
+        activateYouTubeMedia(els.youtubeUrl.value),
+      );
+      els.youtubeUrl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          activateYouTubeMedia(els.youtubeUrl.value);
+        }
+      });
+      els.btnYoutubeClear.addEventListener('click', () => {
+        clearYoutubeMedia({ resetInput: true });
+        setMediaMode('none');
+        showToast('YouTube removido. Nenhuma mídia ativa.');
+      });
+      els.fileVideo.addEventListener('change', (e) => {
+        activateLocalVideoMedia(e.target.files[0]);
+      });
+      els.btnLocalVideoClear.addEventListener('click', () => {
+        clearLocalVideoMedia({ resetInput: true });
+        setMediaMode('none');
+        showToast('Vídeo local removido. Nenhuma mídia ativa.');
+      });
       els.originalRef.addEventListener('click', () => {
-        if (state.isChecked) toggleCurrentAudio();
+        if (state.isChecked) toggleCurrentMedia();
       });
       els.originalRef.addEventListener('dblclick', () => {
-        if (state.isChecked) restartCurrentAudio();
+        if (state.isChecked) restartCurrentMedia();
       });
-      els.btnStart.addEventListener('click', () =>
-        initData({ silent: els.studyScreen.style.display !== 'none' })
-      );
+      els.btnStart.addEventListener('click', () => {
+        initData({ silent: els.studyLayout.classList.contains('active') });
+      });
       els.btnCheck.addEventListener('click', checkAnswer);
       els.btnPrev.addEventListener('click', previousPhrase);
       els.btnNext.addEventListener('click', nextPhrase);
@@ -1695,25 +2614,33 @@
           e.target.tagName === 'INPUT' ||
           e.target.tagName === 'TEXTAREA';
 
-        if (e.altKey && e.key.toLowerCase() === 'p') {
+        // Compatibilidade com macOS:
+        // - No Mac, Option/Alt pode transformar e.key em caracteres especiais
+        //   como π, ®, ∫ etc.
+        // - e.code usa a tecla física, então KeyP continua sendo KeyP.
+        // - metaKey permite usar Command/⌘ como alternativa.
+        const hasShortcutModifier = e.altKey || e.metaKey;
+        const keyCode = e.code;
+
+        if (hasShortcutModifier && keyCode === 'KeyP') {
           e.preventDefault();
-          if (state.isChecked) toggleCurrentAudio();
+          if (state.isChecked) toggleCurrentMedia();
           return;
         }
 
-        if (e.altKey && e.key.toLowerCase() === 'r') {
+        if (hasShortcutModifier && keyCode === 'KeyR') {
           e.preventDefault();
-          if (state.isChecked) restartCurrentAudio();
+          if (state.isChecked) restartCurrentMedia();
           return;
         }
 
-        if (e.altKey && e.key.toLowerCase() === 'b') {
+        if (hasShortcutModifier && keyCode === 'KeyB') {
           e.preventDefault();
           previousPhrase();
           return;
         }
 
-        if (e.altKey && e.key.toLowerCase() === 'i') {
+        if (hasShortcutModifier && keyCode === 'KeyI') {
           e.preventDefault();
           if (!els.btnStart.disabled) {
             els.btnStart.click();
@@ -1721,7 +2648,10 @@
           return;
         }
 
-        if (els.studyScreen.style.display !== 'none' && !els.editModal.open) {
+        if (
+          els.studyLayout.classList.contains('active') &&
+          !els.editModal.open
+        ) {
           if (!isTypingField && state.isChecked && e.key === 'Enter') {
             e.preventDefault();
             nextPhrase();
@@ -1731,10 +2661,10 @@
 
       els.btnExport.addEventListener('click', exportData);
       els.btnImportTrigger.addEventListener('click', () =>
-        els.fileImport.click()
+        els.fileImport.click(),
       );
       els.fileImport.addEventListener('change', (e) =>
-        importData(e.target.files[0])
+        importData(e.target.files[0]),
       );
     </script>
   </body>
