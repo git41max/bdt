@@ -384,6 +384,26 @@
       flex-wrap: wrap;
     }
 
+    .gamepad-diagnostic {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .diagnostic-output {
+      min-height: 74px;
+      padding: 10px 12px;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      background: rgba(15,23,42,.45);
+      color: var(--muted);
+      white-space: pre-line;
+      word-break: break-word;
+      font-size: .86rem;
+    }
+
     @media (max-width: 920px) {
       header, .now { grid-template-columns: 1fr; display: grid; }
       .grid { grid-template-columns: 1fr; }
@@ -523,14 +543,22 @@
             <div class="kbd-grid">
               <div><kbd class="gamepad-kbd">A</kbd> play / pause</div>
 			  <div><kbd class="gamepad-kbd">Y</kbd> entrar / sair da repetição</div>
-              <div><kbd class="gamepad-kbd">Stick →</kbd> próximo par</div>
-              <div><kbd class="gamepad-kbd">Stick ←</kbd> par anterior</div>
+              <div><kbd class="gamepad-kbd">→</kbd> próximo par</div>
+              <div><kbd class="gamepad-kbd">←</kbd> par anterior</div>
               <div><kbd class="gamepad-kbd">B</kbd> marcar difícil</div>
               <div><kbd class="gamepad-kbd">X</kbd> entrar / sair do modo difícil</div>
               <div><kbd class="gamepad-kbd">SL</kbd> repetir A</div>
               <div><kbd class="gamepad-kbd">SR</kbd> repetir B</div>
-              <div><kbd class="gamepad-kbd">R</kbd> carregar preset</div>
-              <div><kbd class="gamepad-kbd">ZR</kbd> sair do preset</div>
+              <div><kbd class="gamepad-kbd">R / ↑</kbd> carregar preset</div>
+              <div><kbd class="gamepad-kbd">ZR / ↓</kbd> sair do preset</div>
+            </div>
+            <div class="gamepad-diagnostic">
+              <div class="footer-actions">
+                <button id="toggleGamepadDiagnostic" type="button">Testar botões</button>
+                <button id="clearGamepadDiagnostic" type="button">Limpar teste</button>
+              </div>
+              <div id="gamepadDiagnosticOutput" class="diagnostic-output" aria-live="polite">Diagnóstico desligado. Ative o teste para identificar botões no iPhone.</div>
+              <div class="hint">Durante o teste, os botões do controle não executam ações no player.</div>
             </div>
           </div>
         </section>
@@ -626,6 +654,10 @@
       lastAxes: [],
       lastStickActionAt: 0,
       stickCooldownMs: 450,
+      gamepadDiagnosticMode: false,
+      gamepadDiagnosticLog: [],
+      diagnosticGamepadId: '',
+      diagnosticButtonCount: 0,
     };
 
     const audio = new Audio();
@@ -677,6 +709,9 @@
       sessionListTitle: $('sessionListTitle'),
       pairTableBody: $('pairTableBody'),
       gamepadStatus: $('gamepadStatus'),
+      toggleGamepadDiagnostic: $('toggleGamepadDiagnostic'),
+      clearGamepadDiagnostic: $('clearGamepadDiagnostic'),
+      gamepadDiagnosticOutput: $('gamepadDiagnosticOutput'),
     };
 
     function naturalCompare(a, b) {
@@ -1401,6 +1436,54 @@
       setStatus(`Pausa A→B ajustada para ${els.pauseAB.value}s.`, 'ok');
     }
 
+    function updateGamepadDiagnosticOutput() {
+      if (!state.gamepadDiagnosticMode) {
+        els.gamepadDiagnosticOutput.textContent = 'Diagnóstico desligado. Ative o teste para identificar botões no iPhone.';
+        els.toggleGamepadDiagnostic.textContent = 'Testar botões';
+        return;
+      }
+
+      els.toggleGamepadDiagnostic.textContent = 'Encerrar teste';
+      const controllerText = state.diagnosticGamepadId
+        ? `${state.diagnosticGamepadId} · ${state.diagnosticButtonCount} botão(ões) exposto(s)`
+        : 'aguardando controle...';
+      const logText = state.gamepadDiagnosticLog.length
+        ? state.gamepadDiagnosticLog.join('\n')
+        : 'Pressione R e ZR no Joy-Con.';
+
+      els.gamepadDiagnosticOutput.textContent = `Controle: ${controllerText}\n${logText}`;
+    }
+
+    function toggleGamepadDiagnostic() {
+      state.gamepadDiagnosticMode = !state.gamepadDiagnosticMode;
+      state.gamepadDiagnosticLog = [];
+      state.diagnosticGamepadId = '';
+      state.diagnosticButtonCount = 0;
+      state.lastButtons = [];
+      updateGamepadDiagnosticOutput();
+
+      setStatus(
+        state.gamepadDiagnosticMode
+          ? 'Diagnóstico do controle ativo. Pressione R e ZR; nenhuma ação do player será executada.'
+          : 'Diagnóstico do controle encerrado.',
+        'ok'
+      );
+    }
+
+    function clearGamepadDiagnostic() {
+      state.gamepadDiagnosticLog = [];
+      updateGamepadDiagnosticOutput();
+    }
+
+    function registerGamepadButtonPress(gp, index, button) {
+      state.diagnosticGamepadId = gp.id || 'controle sem identificação';
+      state.diagnosticButtonCount = gp.buttons.length;
+      const value = Number(button.value || 0).toFixed(2);
+      state.gamepadDiagnosticLog.unshift(`Botão pressionado: índice ${index} · valor ${value}`);
+      state.gamepadDiagnosticLog = state.gamepadDiagnosticLog.slice(0, 10);
+      updateGamepadDiagnosticOutput();
+    }
+
     function handleGamepadAxes(gp) {
       if (!gp.axes || gp.axes.length < 2) return;
 
@@ -1444,6 +1527,8 @@
         5: repeatB,           // SR: repetir somente B
         7: () => exitPreset(true),     // ZR: sair do preset
         8: () => loadNextPreset(true), // R: carregar próximo preset
+        12: () => loadNextPreset(true), // Direcional para cima: carregar próximo preset
+        13: () => exitPreset(true),     // Direcional para baixo: sair do preset
         14: () => prevPair(true),
         15: () => nextPair(true),
       };
@@ -1463,14 +1548,29 @@
         const gp = gamepads[0];
         if (gp) {
           els.gamepadStatus.textContent = `🎮 Controle: ${gp.id.slice(0, 42)}`;
+          if (state.gamepadDiagnosticMode) {
+            const diagnosticId = gp.id || 'controle sem identificação';
+            if (
+              state.diagnosticGamepadId !== diagnosticId ||
+              state.diagnosticButtonCount !== gp.buttons.length
+            ) {
+              state.diagnosticGamepadId = diagnosticId;
+              state.diagnosticButtonCount = gp.buttons.length;
+              updateGamepadDiagnosticOutput();
+            }
+          }
+
           const buttonMap = getGamepadButtonMap(gp);
           gp.buttons.forEach((button, index) => {
             const wasPressed = state.lastButtons[index] || false;
             const isPressed = button.pressed;
-            if (isPressed && !wasPressed && buttonMap[index]) buttonMap[index]();
+            if (isPressed && !wasPressed) {
+              if (state.gamepadDiagnosticMode) registerGamepadButtonPress(gp, index, button);
+              else if (buttonMap[index]) buttonMap[index]();
+            }
             state.lastButtons[index] = isPressed;
           });
-		  handleGamepadAxes(gp);
+          if (!state.gamepadDiagnosticMode) handleGamepadAxes(gp);
         }
         state.gamepadLoop = requestAnimationFrame(tick);
       }
@@ -1507,6 +1607,8 @@
       els.hardMode.addEventListener('click', toggleHardMode);
       els.exitRepeat.addEventListener('click', exitRepeat);
       els.markDifficult.addEventListener('click', toggleDifficult);
+      els.toggleGamepadDiagnostic.addEventListener('click', toggleGamepadDiagnostic);
+      els.clearGamepadDiagnostic.addEventListener('click', clearGamepadDiagnostic);
 
       for (const input of [els.startIndex, els.endIndex, els.pauseAB, els.pauseNext, els.repeatEachPair, els.presetSize]) {
         input.addEventListener('change', saveSettings);
@@ -1529,6 +1631,9 @@
         state.lastButtons = [];
         state.lastAxes = [];
         state.lastStickActionAt = 0;
+        state.diagnosticGamepadId = '';
+        state.diagnosticButtonCount = 0;
+        if (state.gamepadDiagnosticMode) updateGamepadDiagnosticOutput();
       });
 
       if (navigator.getGamepads) startGamepadLoop();
