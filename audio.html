@@ -1,0 +1,1542 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audio Player</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --danger: #fb7185;
+      --warning: #fbbf24;
+      --border: rgba(255,255,255,.12);
+      --shadow: 0 18px 60px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,.2), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(34,197,94,.16), transparent 35%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: .75rem 1rem;
+      background: var(--panel-2);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(56,189,248,.8);
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: .7rem .8rem;
+      background: rgba(15,23,42,.55);
+      color: var(--text);
+    }
+
+    label {
+      display: block;
+      font-size: .88rem;
+      color: var(--muted);
+      margin-bottom: .35rem;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    header {
+      display: flex;
+      gap: 20px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .icon-button {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      border-radius: 12px;
+    }
+
+    body:not(.settings-open) .settings-panel { display: none; }
+    body:not(.settings-open) .grid { grid-template-columns: 1fr; }
+
+    h1 {
+      font-size: clamp(1.8rem, 3vw, 3rem);
+      line-height: 1.05;
+      margin: 0 0 .6rem;
+      letter-spacing: -.04em;
+    }
+
+    .lead {
+      max-width: 760px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: .45rem .7rem;
+      color: var(--muted);
+      background: rgba(17,24,39,.75);
+      white-space: nowrap;
+      font-size: .9rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 390px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card {
+      background: rgba(17,24,39,.82);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(14px);
+    }
+
+    .card h2 {
+      font-size: 1.05rem;
+      margin: 0 0 14px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .stack { display: grid; gap: 14px; }
+
+    .folder-box {
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(31,41,55,.5);
+    }
+
+    .folder-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .folder-actions button { padding: .6rem .8rem; }
+
+    .folder-picker {
+      position: relative;
+      display: inline-flex;
+    }
+
+    .folder-picker button {
+      pointer-events: none;
+    }
+
+    .folder-picker .file-input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .hint, .small {
+      color: var(--muted);
+      font-size: .86rem;
+    }
+
+    .status {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(15,23,42,.6);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      min-height: 48px;
+    }
+
+    .status.ok { color: #bbf7d0; border-color: rgba(34,197,94,.45); }
+    .status.warn { color: #fde68a; border-color: rgba(251,191,36,.45); }
+    .status.err { color: #fecdd3; border-color: rgba(251,113,133,.45); }
+
+    .player-main {
+      display: grid;
+      gap: 20px;
+    }
+
+    .now {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .big-index {
+      font-size: clamp(3.4rem, 9vw, 7rem);
+      font-weight: 800;
+      line-height: .9;
+      letter-spacing: -.08em;
+    }
+
+    .subline { color: var(--muted); }
+
+    .phase {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 120px;
+      border-radius: 999px;
+      padding: .65rem .9rem;
+      border: 1px solid rgba(56,189,248,.45);
+      color: #bae6fd;
+      background: rgba(56,189,248,.1);
+      font-weight: 700;
+    }
+
+    .controls-section {
+      display: grid;
+      gap: 10px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .controls .span-2 { grid-column: span 2; }
+    .controls .full-row { grid-column: 1 / -1; }
+
+    .primary {
+      background: linear-gradient(135deg, rgba(56,189,248,.95), rgba(34,197,94,.85));
+      color: #04111d;
+      font-weight: 800;
+      border: 0;
+    }
+
+    .danger { color: #fecdd3; border-color: rgba(251,113,133,.45); }
+    .good { color: #bbf7d0; border-color: rgba(34,197,94,.45); }
+    .warn { color: #fde68a; border-color: rgba(251,191,36,.45); }
+
+    .progress-wrap {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width .18s ease;
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(31,41,55,.5);
+    }
+
+    .metric strong { display: block; font-size: 1.2rem; }
+    .metric span { color: var(--muted); font-size: .82rem; }
+
+    .pair-list {
+      max-height: 540px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .9rem;
+    }
+
+    th, td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #111827;
+      color: var(--muted);
+      z-index: 1;
+    }
+
+    tr.current { background: rgba(56,189,248,.1); }
+    tr.difficult { background: rgba(251,191,36,.08); }
+
+    .shortcut-section {
+      display: grid;
+      gap: 10px;
+    }
+
+    .shortcut-title {
+      margin: 8px 0 0;
+      color: var(--text);
+      font-size: .92rem;
+      font-weight: 800;
+      letter-spacing: .01em;
+    }
+
+    .kbd-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      font-size: .86rem;
+      color: var(--muted);
+    }
+
+    kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 26px;
+      padding: .15rem .42rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      font-size: .78rem;
+      margin-right: .3rem;
+    }
+
+    .gamepad-kbd {
+      min-width: 58px;
+    }
+
+    .footer-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 920px) {
+      header, .now { grid-template-columns: 1fr; display: grid; }
+      .grid { grid-template-columns: 1fr; }
+      .controls { grid-template-columns: repeat(2, 1fr); }
+      .details { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      .row, .kbd-grid { grid-template-columns: 1fr; }
+      .controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .controls button {
+        min-height: 54px;
+        padding: .6rem .45rem;
+        font-size: .94rem;
+      }
+      .app { width: min(100% - 20px, 1180px); padding-top: 18px; }
+    }
+  </style>
+</head>
+<body class="settings-open">
+  <div class="app">
+    <header>
+      <div>
+        <h1>Audio Player</h1>
+        <p class="lead">Use duas pastas para treinar A → B ou selecione apenas uma pasta para escuta contínua no idioma estudado. Use a interface, o teclado ou o controle para repetir, avançar, usar presets e marcar frases difíceis.</p>
+      </div>
+      <div class="header-actions">
+        <button id="settingsToggle" class="icon-button" aria-label="Fechar configurações" aria-expanded="true">☰</button>
+        <div class="badge" id="gamepadStatus">🎮 Controle: não conectado</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <aside class="stack settings-panel" id="settingsPanel">
+        <section class="card stack">
+          <h2>1. Pastas de áudio</h2>
+
+          <div class="folder-box">
+            <strong>Pasta A</strong>
+            <div class="hint" id="folderAInfo">Nenhuma pasta selecionada.</div>
+            <div class="folder-actions">
+              <div class="folder-picker">
+                <button type="button" tabindex="-1" aria-hidden="true">Escolher pasta A</button>
+                <input id="filesA" class="file-input" type="file" webkitdirectory directory multiple aria-label="Escolher pasta A" />
+              </div>
+            </div>
+          </div>
+
+          <div class="folder-box">
+            <strong>Pasta B</strong>
+            <div class="hint" id="folderBInfo">Nenhuma pasta selecionada.</div>
+            <div class="folder-actions">
+              <div class="folder-picker">
+                <button type="button" tabindex="-1" aria-hidden="true">Escolher pasta B</button>
+                <input id="filesB" class="file-input" type="file" webkitdirectory directory multiple aria-label="Escolher pasta B" />
+              </div>
+            </div>
+          </div>
+
+          <div id="loadStatus" class="status">Use “Escolher pasta” para carregar os arquivos pelo seletor de pastas disponível no navegador.</div>
+        </section>
+
+        <section class="card stack">
+          <h2>2. Sessão</h2>
+          <div>
+            <label for="playbackMode">Modo de reprodução</label>
+            <select id="playbackMode">
+              <option value="paired">A → B (duas pastas)</option>
+              <option value="onlyA">Somente pasta A</option>
+              <option value="onlyB">Somente pasta B</option>
+            </select>
+            <div class="hint">Nos modos de uma pasta, a pausa A → B e o botão do outro idioma não são usados.</div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="startIndex">Início</label>
+              <input id="startIndex" type="number" min="1" value="1" />
+            </div>
+            <div>
+              <label for="endIndex">Fim</label>
+              <input id="endIndex" type="number" min="1" value="1" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="pauseAB">Pausa A → B (s)</label>
+              <input id="pauseAB" type="number" min="0" step="0.25" value="3" />
+            </div>
+            <div>
+              <label for="pauseNext">Pausa B → próximo (s)</label>
+              <input id="pauseNext" type="number" min="0" step="0.25" value="1" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="repeatEachPair">Repetições por par</label>
+              <input id="repeatEachPair" type="number" min="1" step="1" value="1" />
+            </div>
+            <div>
+              <label for="presetSize">Pares por preset</label>
+              <input id="presetSize" type="number" min="1" step="1" value="5" />
+            </div>
+          </div>
+          <div class="footer-actions">
+            <button id="applySession" class="good">Aplicar sessão</button>
+            <button id="allPairs" class="good">Todos</button>
+            <button id="clearProgress" class="warn">Limpar progresso</button>
+            <button id="clearDifficult" class="danger">Limpar difíceis</button>
+          </div>
+        </section>
+
+        <section class="card stack">
+          <h2>Atalhos</h2>
+          <div class="shortcut-section">
+            <div class="shortcut-title">Teclado</div>
+            <div class="kbd-grid">
+              <div><kbd>Espaço</kbd> play / pause</div>
+			  <div><kbd>R</kbd> entrar / sair da repetição</div>
+              <div><kbd>→</kbd> próximo par</div>
+              <div><kbd>←</kbd> par anterior</div>
+              <div><kbd>1</kbd> repetir A</div>
+              <div><kbd>2</kbd> repetir B</div>
+              <div><kbd>D</kbd> marcar difícil</div>
+              <div><kbd>F</kbd> entrar / sair do modo difícil</div>
+              <div><kbd>P</kbd> carregar preset</div>
+              <div><kbd>S</kbd> sair do preset</div>
+              <div><kbd>[</kbd> diminuir pausa A→B</div>
+              <div><kbd>]</kbd> aumentar pausa A→B</div>
+            </div>
+          </div>
+
+          <div class="shortcut-section">
+            <div class="shortcut-title">Controle</div>
+            <div class="kbd-grid">
+              <div><kbd class="gamepad-kbd">A</kbd> play / pause</div>
+			  <div><kbd class="gamepad-kbd">Y</kbd> entrar / sair da repetição</div>
+              <div><kbd class="gamepad-kbd">Stick →</kbd> próximo par</div>
+              <div><kbd class="gamepad-kbd">Stick ←</kbd> par anterior</div>
+              <div><kbd class="gamepad-kbd">B</kbd> marcar difícil</div>
+              <div><kbd class="gamepad-kbd">X</kbd> entrar / sair do modo difícil</div>
+              <div><kbd class="gamepad-kbd">SL</kbd> repetir A</div>
+              <div><kbd class="gamepad-kbd">SR</kbd> repetir B</div>
+              <div><kbd class="gamepad-kbd">R</kbd> carregar preset</div>
+              <div><kbd class="gamepad-kbd">ZR</kbd> sair do preset</div>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="player-main">
+        <section class="card stack">
+          <div class="now">
+            <div>
+              <div class="big-index" id="bigIndex">—</div>
+              <div class="subline" id="nowText">Carregue duas pastas para começar.</div>
+            </div>
+            <div class="phase" id="phaseLabel">parado</div>
+          </div>
+
+          <div class="progress-wrap" aria-label="Progresso da sessão">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+
+          <div class="controls-section">
+            <div class="controls transport-controls">
+              <button id="playPause" class="primary span-2">▶ Play</button>
+              <button id="prevPair">← Anterior</button>
+              <button id="nextPair">Próximo →</button>
+              <button id="repeatPair" class="span-2">↻ Repetir par</button>
+              <button id="loadPreset">Carregar preset</button>
+              <button id="exitPreset">Sair do preset</button>
+            </div>
+            <div class="controls utility-controls">
+              <button id="repeatA">Repetir A</button>
+              <button id="repeatB">Repetir B</button>
+              <button id="hardMode">Modo difícil</button>
+              <button id="exitRepeat">Sair do difícil</button>
+              <button id="markDifficult" class="full-row">☆ Difícil</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="details">
+          <div class="metric"><strong id="metricLoaded">0 / 0</strong><span id="metricLoadedLabel">pares carregados</span></div>
+          <div class="metric"><strong id="metricSession">0</strong><span id="metricSessionLabel">pares na sessão</span></div>
+          <div class="metric"><strong id="metricDifficult">0</strong><span id="metricDifficultLabel">pares difíceis</span></div>
+        </section>
+
+        <section class="card stack">
+          <h2 id="sessionListTitle">Pares da sessão</h2>
+          <div class="pair-list">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Áudio A</th>
+                  <th>Áudio B</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="pairTableBody">
+                <tr><td colspan="4" class="hint">Nenhum par carregado.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const audioExts = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm']);
+
+    const state = {
+      filesA: [],
+      filesB: [],
+      pairs: [],
+      sessionPairs: [],
+      currentSessionIndex: 0,
+      currentRepeatCount: 1,
+      isPlaying: false,
+      phase: 'idle',
+	  phaseBeforePause: null,
+      repeatMode: false,
+      hardMode: false,
+      presetMode: false,
+      presetStartIndex: 1,
+      difficult: new Set(),
+      objectUrl: null,
+      waitTimer: null,
+      waitStartedAt: 0,
+      waitDurationMs: 0,
+      waitCallback: null,
+      pausedWait: null,
+      gamepadLoop: null,
+      lastButtons: [],
+      lastAxes: [],
+      lastStickActionAt: 0,
+      stickCooldownMs: 450,
+    };
+
+    const audio = new Audio();
+    audio.preload = 'auto';
+
+    const $ = (id) => document.getElementById(id);
+
+    const els = {
+      settingsToggle: $('settingsToggle'),
+      settingsPanel: $('settingsPanel'),
+      filesA: $('filesA'),
+      filesB: $('filesB'),
+      folderAInfo: $('folderAInfo'),
+      folderBInfo: $('folderBInfo'),
+      loadStatus: $('loadStatus'),
+      startIndex: $('startIndex'),
+      endIndex: $('endIndex'),
+      playbackMode: $('playbackMode'),
+      pauseAB: $('pauseAB'),
+      pauseNext: $('pauseNext'),
+      repeatEachPair: $('repeatEachPair'),
+      presetSize: $('presetSize'),
+
+      applySession: $('applySession'),
+      allPairs: $('allPairs'),
+      clearProgress: $('clearProgress'),
+      clearDifficult: $('clearDifficult'),
+      bigIndex: $('bigIndex'),
+      nowText: $('nowText'),
+      phaseLabel: $('phaseLabel'),
+      progressBar: $('progressBar'),
+      playPause: $('playPause'),
+      prevPair: $('prevPair'),
+      nextPair: $('nextPair'),
+      repeatPair: $('repeatPair'),
+      loadPreset: $('loadPreset'),
+      exitPreset: $('exitPreset'),
+      repeatA: $('repeatA'),
+      repeatB: $('repeatB'),
+      hardMode: $('hardMode'),
+      exitRepeat: $('exitRepeat'),
+      markDifficult: $('markDifficult'),
+      metricLoaded: $('metricLoaded'),
+      metricLoadedLabel: $('metricLoadedLabel'),
+      metricSession: $('metricSession'),
+      metricSessionLabel: $('metricSessionLabel'),
+      metricDifficult: $('metricDifficult'),
+      metricDifficultLabel: $('metricDifficultLabel'),
+      sessionListTitle: $('sessionListTitle'),
+      pairTableBody: $('pairTableBody'),
+      gamepadStatus: $('gamepadStatus'),
+    };
+
+    function naturalCompare(a, b) {
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    function isAudioFile(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      return file.type.startsWith('audio/') || audioExts.has(ext);
+    }
+
+    function setStatus(message, type = '') {
+      els.loadStatus.className = `status ${type}`.trim();
+      els.loadStatus.textContent = message;
+    }
+
+    function saveSettings() {
+      const data = {
+        startIndex: els.startIndex.value,
+        endIndex: els.endIndex.value,
+        playbackMode: els.playbackMode.value,
+        pauseAB: els.pauseAB.value,
+        pauseNext: els.pauseNext.value,
+        repeatEachPair: els.repeatEachPair.value,
+        presetSize: els.presetSize.value,
+        currentOriginalIndex: getCurrentPair()?.originalIndex ?? 1,
+        difficult: Array.from(state.difficult),
+      };
+      localStorage.setItem('pairedAudioPlayerSettings', JSON.stringify(data));
+    }
+
+    function loadSettings() {
+      try {
+        const raw = localStorage.getItem('pairedAudioPlayerSettings');
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        for (const key of ['startIndex', 'endIndex', 'playbackMode', 'pauseAB', 'pauseNext', 'repeatEachPair', 'presetSize']) {
+          if (data[key] !== undefined && els[key]) els[key].value = data[key];
+        }
+        if (Array.isArray(data.difficult)) state.difficult = new Set(data.difficult.map(Number));
+      } catch (err) {
+        console.warn('Não foi possível carregar configurações:', err);
+      }
+    }
+
+    function getSavedOriginalIndex() {
+      try {
+        const raw = localStorage.getItem('pairedAudioPlayerSettings');
+        if (!raw) return null;
+        return JSON.parse(raw).currentOriginalIndex ?? null;
+      } catch {
+        return null;
+      }
+    }
+
+    function getFolderName(fileList) {
+      const relativePath = Array.from(fileList)[0]?.webkitRelativePath || '';
+      return relativePath.includes('/') ? relativePath.split('/')[0] : '';
+    }
+
+    function setFiles(which, fileList, folderName = '') {
+      const files = Array.from(fileList).filter(isAudioFile).sort(naturalCompare);
+      if (which === 'A') {
+        state.filesA = files;
+        els.folderAInfo.textContent = files.length ? `${files.length} arquivo(s)${folderName ? ` em “${folderName}”` : ''}. Primeiro: ${files[0].name}` : 'Nenhum áudio encontrado.';
+      } else {
+        state.filesB = files;
+        els.folderBInfo.textContent = files.length ? `${files.length} arquivo(s)${folderName ? ` em “${folderName}”` : ''}. Primeiro: ${files[0].name}` : 'Nenhum áudio encontrado.';
+      }
+      buildPairsIfReady();
+    }
+
+    function getPlaybackMode() {
+      return els.playbackMode.value || 'paired';
+    }
+
+    function isPairedMode() {
+      return getPlaybackMode() === 'paired';
+    }
+
+    function buildPairsIfReady() {
+      const mode = getPlaybackMode();
+      stopPlayback();
+      state.hardMode = false;
+      state.presetMode = false;
+      state.presetStartIndex = 1;
+      state.pairs = [];
+      state.sessionPairs = [];
+
+      if (mode === 'paired') {
+        if (!state.filesA.length || !state.filesB.length) {
+          setStatus('No modo A → B, selecione as duas pastas de áudio.', 'warn');
+          updateUI();
+          return;
+        }
+
+        if (state.filesA.length !== state.filesB.length) {
+          setStatus(`As pastas têm quantidades diferentes: A=${state.filesA.length}, B=${state.filesB.length}.`, 'err');
+          updateUI();
+          return;
+        }
+
+        state.pairs = state.filesA.map((fileA, i) => ({
+          originalIndex: i + 1,
+          fileA,
+          fileB: state.filesB[i],
+        }));
+
+        setStatus(`Pares carregados com sucesso: ${state.pairs.length}. Confira a tabela antes de iniciar.`, 'ok');
+      } else {
+        const useA = mode === 'onlyA';
+        const files = useA ? state.filesA : state.filesB;
+        const folderLabel = useA ? 'A' : 'B';
+
+        if (!files.length) {
+          setStatus(`No modo “Somente pasta ${folderLabel}”, selecione a pasta ${folderLabel}.`, 'warn');
+          updateUI();
+          return;
+        }
+
+        state.pairs = files.map((file, i) => ({
+          originalIndex: i + 1,
+          fileA: useA ? file : null,
+          fileB: useA ? null : file,
+        }));
+
+        setStatus(`Modo de uma pasta ativo: ${state.pairs.length} áudio(s) da pasta ${folderLabel}.`, 'ok');
+      }
+
+      els.endIndex.value = Math.min(Number(els.endIndex.value || state.pairs.length), state.pairs.length);
+      if (Number(els.endIndex.value) < Number(els.startIndex.value)) els.endIndex.value = state.pairs.length;
+
+      applySession();
+    }
+
+    function applySession(options = {}) {
+      const { preserveOriginalIndex = null, autoPlay = false, keepPresetMode = false } = options;
+      const savedCurrent = preserveOriginalIndex ?? getCurrentPair()?.originalIndex ?? getSavedOriginalIndex();
+      stopPlayback(false);
+      state.hardMode = false;
+      if (!keepPresetMode) state.presetMode = false;
+
+      const total = state.pairs.length;
+      if (!total) {
+        state.sessionPairs = [];
+        updateUI();
+        return;
+      }
+
+      const start = clamp(Number(els.startIndex.value || 1), 1, total);
+      const end = clamp(Number(els.endIndex.value || total), start, total);
+      els.startIndex.value = start;
+      els.endIndex.value = end;
+      state.sessionPairs = state.pairs.slice(start - 1, end);
+
+      state.currentSessionIndex = 0;
+      state.currentRepeatCount = 1;
+      state.repeatMode = false;
+
+      if (savedCurrent) {
+        const found = state.sessionPairs.findIndex(pair => pair.originalIndex === Number(savedCurrent));
+        if (found >= 0) state.currentSessionIndex = found;
+      }
+
+      state.phase = 'idle';
+      saveSettings();
+      updateUI();
+      if (autoPlay) playCurrentSequence();
+    }
+
+    function loadAllPairs(autoPlay = false) {
+      const total = state.pairs.length;
+      if (!total) {
+        setStatus('Carregue as duas pastas antes de carregar todos os pares.', 'warn');
+        return;
+      }
+
+      state.presetMode = false;
+      state.presetStartIndex = 1;
+      els.startIndex.value = 1;
+      els.endIndex.value = total;
+      applySession({ preserveOriginalIndex: 1, autoPlay });
+      setStatus(`Todos os ${total} ${isPairedMode() ? 'par(es)' : 'áudio(s)'} foram carregados.`, 'ok');
+    }
+
+    function loadNextPreset(autoPlay = true) {
+      const total = state.pairs.length;
+      if (!total) {
+        setStatus('Carregue as duas pastas antes de usar presets.', 'warn');
+        return;
+      }
+
+      const size = getPresetSize();
+      let nextStart = 1;
+
+      if (state.presetMode) {
+        const candidateStart = state.presetStartIndex + size;
+        nextStart = candidateStart <= total ? candidateStart : 1;
+      }
+
+      const nextEnd = Math.min(nextStart + size - 1, total);
+
+      state.presetMode = true;
+      state.presetStartIndex = nextStart;
+      els.startIndex.value = nextStart;
+      els.endIndex.value = nextEnd;
+
+      applySession({
+        preserveOriginalIndex: nextStart,
+        autoPlay,
+        keepPresetMode: true,
+      });
+
+      setStatus(`Preset carregado: ${isPairedMode() ? 'pares' : 'áudios'} ${nextStart}–${nextEnd} de ${total}.`, 'ok');
+    }
+
+    function exitPreset(autoPlay = false) {
+      if (!state.presetMode) {
+        loadAllPairs(autoPlay);
+        return;
+      }
+
+      loadAllPairs(autoPlay);
+      setStatus(`Preset encerrado. Todos os ${isPairedMode() ? 'pares' : 'áudios'} foram carregados a partir do primeiro.`, 'ok');
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getCurrentPair() {
+      return state.sessionPairs[state.currentSessionIndex] || null;
+    }
+
+    function getRepeatTarget() {
+      return Math.max(1, Math.floor(Number(els.repeatEachPair.value || 1)));
+    }
+
+    function getPresetSize() {
+      return Math.max(1, Math.floor(Number(els.presetSize.value || 5)));
+    }
+
+    function getPauseABMs() {
+      return Math.max(0, Number(els.pauseAB.value || 0) * 1000);
+    }
+
+    function getPauseNextMs() {
+      return Math.max(0, Number(els.pauseNext.value || 0) * 1000);
+    }
+
+    function revokeUrl() {
+      if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+      state.objectUrl = null;
+    }
+
+    function clearWait() {
+      if (state.waitTimer) clearTimeout(state.waitTimer);
+      state.waitTimer = null;
+      state.waitStartedAt = 0;
+      state.waitDurationMs = 0;
+      state.waitCallback = null;
+    }
+
+    function clearPausedWait() {
+      state.pausedWait = null;
+    }
+
+    function playFile(file, phase) {
+      clearWait();
+      clearPausedWait();
+      revokeUrl();
+      state.phase = phase;
+      state.objectUrl = URL.createObjectURL(file);
+      audio.src = state.objectUrl;
+      audio.currentTime = 0;
+      state.isPlaying = true;
+      return audio.play().catch(err => {
+        state.isPlaying = false;
+        setStatus(`O navegador bloqueou ou falhou ao tocar o áudio: ${err.message}`, 'err');
+        updateUI();
+      }).finally(updateUI);
+    }
+
+    function startPlayback() {
+      if (!state.sessionPairs.length) {
+        setStatus('Carregue as duas pastas e aplique uma sessão antes de iniciar.', 'warn');
+        return;
+      }
+      state.repeatMode = false;
+      state.currentRepeatCount = 1;
+      playCurrentSequence();
+    }
+
+    function playCurrentA() {
+      const pair = getCurrentPair();
+      if (!pair?.fileA) return;
+      // Não desliga repeatMode: repetir uma frase dentro do item não deve sair do fluxo.
+      playFile(pair.fileA, 'playingA');
+    }
+
+    function playCurrentB() {
+      const pair = getCurrentPair();
+      if (!pair?.fileB) return;
+      // Não desliga repeatMode: repetir uma frase dentro do item não deve sair do fluxo.
+      playFile(pair.fileB, 'playingB');
+    }
+
+    function playCurrentSequence() {
+      if (getPlaybackMode() === 'onlyB') playCurrentB();
+      else playCurrentA();
+    }
+
+    function pausePlayback() {
+      if (state.waitTimer) {
+        const elapsed = performance.now() - state.waitStartedAt;
+        const remainingMs = Math.max(0, state.waitDurationMs - elapsed);
+        state.pausedWait = {
+          fn: state.waitCallback,
+          remainingMs,
+          phase: state.phase,
+        };
+        clearWait();
+      } else {
+        audio.pause();
+        clearPausedWait();
+      }
+
+      state.phaseBeforePause = state.phase;
+      state.isPlaying = false;
+      state.phase = 'paused';
+      updateUI();
+    }
+
+    function resumePlayback() {
+      if (state.pausedWait?.fn) {
+        const { fn, remainingMs, phase } = state.pausedWait;
+        clearPausedWait();
+        scheduleNext(fn, remainingMs, phase);
+        return;
+      }
+
+      if (audio.src && audio.paused && ['playingA', 'playingB', 'playingSingleA', 'playingSingleB'].includes(state.phaseBeforePause)) {
+        state.phase = state.phaseBeforePause;
+        state.phaseBeforePause = null;
+        state.isPlaying = true;
+        audio.play().catch(err => setStatus(`Erro ao retomar: ${err.message}`, 'err'));
+        updateUI();
+      } else if (state.repeatMode && getCurrentPair()) {
+        playCurrentSequence();
+      } else {
+        startPlayback();
+      }
+    }
+
+    function stopPlayback(resetPhase = true) {
+      clearWait();
+      audio.pause();
+      audio.removeAttribute('src');
+      revokeUrl();
+      state.isPlaying = false;
+      state.repeatMode = false;
+      state.currentRepeatCount = 1;
+	  state.phaseBeforePause = null;
+      if (resetPhase) state.phase = 'idle';
+      updateUI();
+    }
+
+    function togglePlayPause() {
+      if (state.isPlaying || state.waitTimer) pausePlayback();
+      else resumePlayback();
+    }
+
+    function scheduleNext(fn, ms, phase) {
+      clearWait();
+      clearPausedWait();
+      state.phase = phase;
+      state.isPlaying = true;
+      state.waitStartedAt = performance.now();
+      state.waitDurationMs = ms;
+      state.waitCallback = fn;
+      updateUI();
+      state.waitTimer = setTimeout(() => {
+        clearWait();
+        fn();
+      }, ms);
+    }
+
+    function pauseAfterRepeatPair() {
+      clearWait();
+      audio.pause();
+      audio.removeAttribute('src');
+      revokeUrl();
+      state.isPlaying = false;
+      state.phaseBeforePause = null;
+      clearPausedWait();
+      state.phase = 'paused';
+      setStatus(`${isPairedMode() ? 'Par repetido' : 'Áudio repetido'} até o final. Use Próximo/Anterior para sair da repetição.`, 'ok');
+      updateUI();
+    }
+
+    function continueAfterItem() {
+      // Esta função roda depois da pausa B → próximo.
+      // Se o usuário ativar repetição durante o par ou a pausa, o par atual
+      // termina e o player pausa, sem entrar em loop.
+      if (state.repeatMode) {
+        pauseAfterRepeatPair();
+        return;
+      }
+
+      const targetRepeats = getRepeatTarget();
+      if (state.currentRepeatCount < targetRepeats) {
+        state.currentRepeatCount += 1;
+        playCurrentSequence();
+        return;
+      }
+
+      state.currentRepeatCount = 1;
+
+      if (state.currentSessionIndex < state.sessionPairs.length - 1) {
+        state.currentSessionIndex += 1;
+      } else {
+        state.currentSessionIndex = 0;
+      }
+
+      saveSettings();
+      playCurrentSequence();
+    }
+
+    audio.addEventListener('ended', () => {
+      if (state.phase === 'playingA') {
+        if (isPairedMode()) scheduleNext(playCurrentB, getPauseABMs(), 'waitingAB');
+        else scheduleNext(continueAfterItem, getPauseNextMs(), 'waitingNext');
+        return;
+      }
+
+      if (state.phase === 'playingB') {
+        scheduleNext(continueAfterItem, getPauseNextMs(), 'waitingNext');
+        return;
+      }
+
+      if (state.phase === 'playingSingleA' || state.phase === 'playingSingleB') {
+        state.isPlaying = false;
+        state.phaseBeforePause = null;
+        state.phase = state.repeatMode ? 'paused' : 'idle';
+        updateUI();
+      }
+    });
+
+    function nextPair(autoPlay = true) {
+      if (!state.sessionPairs.length) return;
+      state.currentSessionIndex = clamp(state.currentSessionIndex + 1, 0, state.sessionPairs.length - 1);
+      state.currentRepeatCount = 1;
+      state.repeatMode = false;
+      saveSettings();
+      if (autoPlay) playCurrentSequence();
+      else updateUI();
+    }
+
+    function prevPair(autoPlay = true) {
+      if (!state.sessionPairs.length) return;
+      state.currentSessionIndex = clamp(state.currentSessionIndex - 1, 0, state.sessionPairs.length - 1);
+      state.currentRepeatCount = 1;
+      state.repeatMode = false;
+      saveSettings();
+      if (autoPlay) playCurrentSequence();
+      else updateUI();
+    }
+
+    function repeatA() {
+      const pair = getCurrentPair();
+      if (!pair?.fileA) return;
+      state.currentRepeatCount = 1;
+      playFile(pair.fileA, 'playingSingleA');
+    }
+
+    function repeatB() {
+      const pair = getCurrentPair();
+      if (!pair?.fileB) return;
+      state.currentRepeatCount = 1;
+      playFile(pair.fileB, 'playingSingleB');
+    }
+
+    function repeatPair() {
+      if (!getCurrentPair()) return;
+
+      state.repeatMode = true;
+      state.currentRepeatCount = 1;
+
+      // O modo de repetição agora é pontual: o par atual termina
+      // (A → pausa → B → pausa) e o player pausa no fim do par.
+      // Se estiver no meio do fluxo, não reinicia; apenas agenda a pausa final.
+      if (
+        state.phase === 'playingA' ||
+        state.phase === 'playingB' ||
+        state.phase === 'waitingAB' ||
+        state.phase === 'waitingNext'
+      ) {
+        updateUI();
+        return;
+      }
+
+      playCurrentSequence();
+    }
+
+    function toggleRepeatMode() {
+      if (state.repeatMode) {
+        state.repeatMode = false;
+        setStatus('Modo de repetição encerrado.', 'ok');
+        updateUI();
+        return;
+      }
+
+      repeatPair();
+    }
+
+    function startHardMode() {
+      const difficultPairs = state.pairs.filter(pair => state.difficult.has(pair.originalIndex));
+      if (!difficultPairs.length) {
+        setStatus('Marque pelo menos um par como difícil antes de ativar o modo difícil.', 'warn');
+        return;
+      }
+
+      const shouldAutoPlay = state.isPlaying || Boolean(state.waitTimer);
+      const currentOriginal = getCurrentPair()?.originalIndex;
+      stopPlayback(false);
+
+      state.hardMode = true;
+      state.repeatMode = false;
+      state.sessionPairs = difficultPairs;
+      state.currentSessionIndex = 0;
+      state.currentRepeatCount = 1;
+
+      if (currentOriginal) {
+        const found = state.sessionPairs.findIndex(pair => pair.originalIndex === currentOriginal);
+        if (found >= 0) state.currentSessionIndex = found;
+      }
+
+      state.phase = 'idle';
+      saveSettings();
+      updateUI();
+      setStatus(`Modo difícil ativado com ${state.sessionPairs.length} ${isPairedMode() ? 'par(es)' : 'áudio(s)'}.`, 'ok');
+      if (shouldAutoPlay) playCurrentSequence();
+    }
+
+    function exitHardMode(autoPlay = false) {
+      if (!state.hardMode) return;
+      const currentOriginal = getCurrentPair()?.originalIndex;
+      applySession({ preserveOriginalIndex: currentOriginal, autoPlay });
+      setStatus('Modo difícil encerrado. Voltei ao intervalo selecionado.', 'ok');
+    }
+
+    function toggleHardMode() {
+      if (state.hardMode) {
+        const shouldAutoPlay = state.isPlaying || Boolean(state.waitTimer);
+        exitHardMode(shouldAutoPlay);
+      } else {
+        startHardMode();
+      }
+    }
+
+    function exitRepeat() {
+      if (state.hardMode) {
+        const shouldAutoPlay = state.isPlaying || Boolean(state.waitTimer);
+        exitHardMode(shouldAutoPlay);
+      }
+    }
+
+    function toggleDifficult() {
+      const pair = getCurrentPair();
+      if (!pair) return;
+      if (state.difficult.has(pair.originalIndex)) state.difficult.delete(pair.originalIndex);
+      else state.difficult.add(pair.originalIndex);
+      saveSettings();
+      renderPairs();
+      updateUI();
+    }
+
+    function clearProgress() {
+      localStorage.removeItem('pairedAudioPlayerSettings');
+      const difficult = Array.from(state.difficult);
+      loadSettings();
+      state.difficult = new Set(difficult);
+      state.currentSessionIndex = 0;
+      state.currentRepeatCount = 1;
+      state.presetMode = false;
+      state.presetStartIndex = 1;
+      saveSettings();
+      updateUI();
+      setStatus('Progresso limpo. As marcações de difíceis foram mantidas.', 'ok');
+    }
+
+    function clearDifficult() {
+      state.difficult.clear();
+      saveSettings();
+      if (state.hardMode) state.hardMode = false;
+      applySession();
+      setStatus('Lista de difíceis limpa.', 'ok');
+    }
+
+    function updateUI() {
+      const pair = getCurrentPair();
+      const mode = getPlaybackMode();
+      const activeFiles = mode === 'onlyA' ? state.filesA.length : mode === 'onlyB' ? state.filesB.length : Math.min(state.filesA.length, state.filesB.length);
+      const totalFiles = mode === 'paired' ? Math.max(state.filesA.length, state.filesB.length) : activeFiles;
+      els.metricLoaded.textContent = mode === 'paired' ? `${activeFiles} / ${totalFiles}` : `${activeFiles}`;
+      els.metricLoadedLabel.textContent = mode === 'paired' ? 'pares carregados' : `áudios da pasta ${mode === 'onlyA' ? 'A' : 'B'}`;
+      els.metricSession.textContent = state.sessionPairs.length;
+      els.metricSessionLabel.textContent = isPairedMode() ? 'pares na sessão' : 'áudios na sessão';
+      els.metricDifficult.textContent = state.difficult.size;
+      els.metricDifficultLabel.textContent = isPairedMode() ? 'pares difíceis' : 'áudios difíceis';
+      els.sessionListTitle.textContent = isPairedMode() ? 'Pares da sessão' : 'Áudios da sessão';
+
+      if (pair) {
+        els.bigIndex.textContent = String(pair.originalIndex).padStart(2, '0');
+        const presetText = state.presetMode ? ` · preset ${state.sessionPairs[0]?.originalIndex ?? ''}–${state.sessionPairs.at(-1)?.originalIndex ?? ''}` : '';
+        const repeatText = isPairedMode() ? ' · repetição até o fim do par' : ' · repetição até o fim do áudio';
+        const modeText = `${state.hardMode ? ' · modo difícil' : ''}${presetText}${state.repeatMode ? repeatText : ''}`;
+        const fileText = mode === 'paired'
+          ? `A: ${pair.fileA.name} · B: ${pair.fileB.name}`
+          : mode === 'onlyA' ? `A: ${pair.fileA.name}` : `B: ${pair.fileB.name}`;
+        els.nowText.textContent = `${state.currentSessionIndex + 1}/${state.sessionPairs.length} na sessão · ${fileText}${modeText}`;
+        els.markDifficult.textContent = state.difficult.has(pair.originalIndex) ? '★ Difícil' : '☆ Difícil';
+      } else {
+        els.bigIndex.textContent = '—';
+        const prompt = mode === 'paired' ? 'Carregue duas pastas para começar.' : `Carregue a pasta ${mode === 'onlyA' ? 'A' : 'B'} para começar.`;
+        els.nowText.textContent = state.pairs.length ? 'Aplique uma sessão para começar.' : prompt;
+        els.markDifficult.textContent = '☆ Difícil';
+      }
+
+      const phaseText = {
+        idle: 'parado',
+        paused: 'pausado',
+        playingA: 'tocando A',
+        playingSingleA: 'repetindo A',
+        waitingAB: 'pausa A→B',
+        playingB: 'tocando B',
+        playingSingleB: 'repetindo B',
+        waitingNext: state.repeatMode ? 'pausa final' : (isPairedMode() ? 'próximo par' : 'próximo áudio'),
+        finished: 'fim',
+      }[state.phase] || state.phase;
+      els.phaseLabel.textContent = phaseText;
+      els.playPause.textContent = state.isPlaying || state.waitTimer ? '⏸ Pause' : '▶ Play';
+      els.repeatPair.textContent = state.repeatMode ? 'Sair da repetição' : (isPairedMode() ? '↻ Repetir par' : '↻ Repetir áudio');
+
+      const progress = state.sessionPairs.length ? ((state.currentSessionIndex + 1) / state.sessionPairs.length) * 100 : 0;
+      els.progressBar.style.width = `${progress}%`;
+
+      const hasSession = Boolean(state.sessionPairs.length);
+      els.hardMode.disabled = !state.pairs.length || (!state.difficult.size && !state.hardMode);
+      els.exitRepeat.disabled = !state.hardMode;
+      els.allPairs.disabled = !state.pairs.length;
+      els.loadPreset.disabled = !state.pairs.length;
+      els.exitPreset.disabled = !state.presetMode;
+      els.pauseAB.disabled = !isPairedMode();
+      els.hardMode.textContent = state.hardMode ? 'Sair do difícil' : 'Modo difícil';
+      els.exitRepeat.textContent = 'Sair do difícil';
+
+      for (const btn of [els.playPause, els.prevPair, els.nextPair, els.repeatPair, els.markDifficult]) {
+        btn.disabled = !hasSession;
+      }
+      els.repeatA.disabled = !hasSession || !pair?.fileA;
+      els.repeatB.disabled = !hasSession || !pair?.fileB;
+
+      renderPairs();
+    }
+
+    function renderPairs() {
+      if (!state.sessionPairs.length) {
+        els.pairTableBody.innerHTML = '<tr><td colspan="4" class="hint">Nenhum par carregado.</td></tr>';
+        return;
+      }
+
+      els.pairTableBody.innerHTML = state.sessionPairs.map((pair, i) => {
+        const current = i === state.currentSessionIndex;
+        const difficult = state.difficult.has(pair.originalIndex);
+        const cls = `${current ? 'current' : ''} ${difficult ? 'difficult' : ''}`.trim();
+        return `
+          <tr class="${cls}" data-session-index="${i}">
+            <td>${pair.originalIndex}</td>
+            <td>${pair.fileA ? escapeHtml(pair.fileA.name) : '—'}</td>
+            <td>${pair.fileB ? escapeHtml(pair.fileB.name) : '—'}</td>
+            <td>${current ? '▶ atual ' : ''}${difficult ? '★ difícil' : ''}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/[&<>'"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[ch]));
+    }
+
+    function handleKeydown(event) {
+      const tag = document.activeElement?.tagName;
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)) return;
+
+      const key = event.key.toLowerCase();
+      const actions = {
+        ' ': togglePlayPause,
+        'arrowright': () => nextPair(true),
+        'arrowleft': () => prevPair(true),
+        '1': repeatA,
+        '2': repeatB,
+        'r': toggleRepeatMode,
+        'd': toggleDifficult,
+        'f': toggleHardMode,
+        'p': () => loadNextPreset(true),
+        's': () => exitPreset(true),
+        '[': () => adjustPause(-0.25),
+        ']': () => adjustPause(0.25),
+      };
+
+      if (actions[key]) {
+        event.preventDefault();
+        actions[key]();
+      }
+    }
+
+    function adjustPause(delta) {
+      const next = Math.max(0, Number(els.pauseAB.value || 0) + delta);
+      els.pauseAB.value = next.toFixed(2).replace(/\.00$/, '');
+      saveSettings();
+      setStatus(`Pausa A→B ajustada para ${els.pauseAB.value}s.`, 'ok');
+    }
+
+    function handleGamepadAxes(gp) {
+      if (!gp.axes || gp.axes.length < 2) return;
+
+      const deadzone = 0.65;
+      const now = performance.now();
+      const horizontal = gp.axes[0] || 0;
+
+      const wasNeutral =
+        !state.lastAxes.length ||
+        Math.abs(state.lastAxes[0] || 0) < deadzone;
+
+      const movedRight = horizontal > deadzone;
+      const movedLeft = horizontal < -deadzone;
+      const cooldownReady = now - state.lastStickActionAt > state.stickCooldownMs;
+
+      if (wasNeutral && cooldownReady && movedRight) {
+        nextPair(true);
+        state.lastStickActionAt = now;
+      } else if (wasNeutral && cooldownReady && movedLeft) {
+        prevPair(true);
+        state.lastStickActionAt = now;
+      }
+
+      state.lastAxes = Array.from(gp.axes);
+    }
+
+    function isJoyConRight(gp) {
+      return /joy-?con|joycon/i.test(gp.id || '') && /\b(r|right)\b/i.test(gp.id || '');
+    }
+
+    function getGamepadButtonMap(gp) {
+      // Perfil ajustado pelo teste real com o Joy-Con R pareado sozinho.
+      // O navegador expõe índices em gp.buttons; esses índices podem divergir
+      // dos rótulos físicos e do mapeamento "standard" da Gamepad API.
+      const joyConRMap = {
+        0: togglePlayPause,   // A: play / pause
+        1: toggleHardMode,    // X: entrar / sair do modo difícil
+        2: toggleDifficult,   // B: marcar / desmarcar difícil
+        3: toggleRepeatMode,  // Y: entrar / sair da repetição
+        4: repeatA,           // SL: repetir somente A
+        5: repeatB,           // SR: repetir somente B
+        7: () => exitPreset(true),     // ZR: sair do preset
+        8: () => loadNextPreset(true), // R: carregar próximo preset
+        14: () => prevPair(true),
+        15: () => nextPair(true),
+      };
+
+      if (isJoyConRight(gp)) return joyConRMap;
+
+      // Fallback conservador: usa o mesmo perfil observado porque alguns
+      // navegadores não identificam o Joy-Con R pelo nome no gp.id.
+      return joyConRMap;
+    }
+
+    function startGamepadLoop() {
+      if (state.gamepadLoop) return;
+
+      function tick() {
+        const gamepads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) : [];
+        const gp = gamepads[0];
+        if (gp) {
+          els.gamepadStatus.textContent = `🎮 Controle: ${gp.id.slice(0, 42)}`;
+          const buttonMap = getGamepadButtonMap(gp);
+          gp.buttons.forEach((button, index) => {
+            const wasPressed = state.lastButtons[index] || false;
+            const isPressed = button.pressed;
+            if (isPressed && !wasPressed && buttonMap[index]) buttonMap[index]();
+            state.lastButtons[index] = isPressed;
+          });
+		  handleGamepadAxes(gp);
+        }
+        state.gamepadLoop = requestAnimationFrame(tick);
+      }
+      state.gamepadLoop = requestAnimationFrame(tick);
+    }
+
+    function setupEvents() {
+      els.settingsToggle.addEventListener('click', () => {
+        const isOpen = document.body.classList.toggle('settings-open');
+        els.settingsToggle.setAttribute('aria-expanded', String(isOpen));
+        els.settingsToggle.setAttribute('aria-label', isOpen ? 'Fechar configurações' : 'Abrir configurações');
+      });
+
+      els.filesA.addEventListener('change', e => setFiles('A', e.target.files, getFolderName(e.target.files)));
+      els.filesB.addEventListener('change', e => setFiles('B', e.target.files, getFolderName(e.target.files)));
+
+      els.playbackMode.addEventListener('change', () => {
+        saveSettings();
+        buildPairsIfReady();
+      });
+
+      els.applySession.addEventListener('click', applySession);
+      els.allPairs.addEventListener('click', () => loadAllPairs(false));
+      els.clearProgress.addEventListener('click', clearProgress);
+      els.clearDifficult.addEventListener('click', clearDifficult);
+      els.playPause.addEventListener('click', togglePlayPause);
+      els.prevPair.addEventListener('click', () => prevPair(true));
+      els.nextPair.addEventListener('click', () => nextPair(true));
+      els.repeatPair.addEventListener('click', toggleRepeatMode);
+      els.loadPreset.addEventListener('click', () => loadNextPreset(true));
+      els.exitPreset.addEventListener('click', () => exitPreset(true));
+      els.repeatA.addEventListener('click', repeatA);
+      els.repeatB.addEventListener('click', repeatB);
+      els.hardMode.addEventListener('click', toggleHardMode);
+      els.exitRepeat.addEventListener('click', exitRepeat);
+      els.markDifficult.addEventListener('click', toggleDifficult);
+
+      for (const input of [els.startIndex, els.endIndex, els.pauseAB, els.pauseNext, els.repeatEachPair, els.presetSize]) {
+        input.addEventListener('change', saveSettings);
+      }
+
+      els.pairTableBody.addEventListener('click', event => {
+        const row = event.target.closest('tr[data-session-index]');
+        if (!row) return;
+        state.currentSessionIndex = Number(row.dataset.sessionIndex);
+        state.repeatMode = false;
+        saveSettings();
+        playCurrentSequence();
+      });
+
+      document.addEventListener('keydown', handleKeydown);
+
+      window.addEventListener('gamepadconnected', () => startGamepadLoop());
+      window.addEventListener('gamepaddisconnected', () => {
+        els.gamepadStatus.textContent = '🎮 Controle: desconectado';
+        state.lastButtons = [];
+        state.lastAxes = [];
+        state.lastStickActionAt = 0;
+      });
+
+      if (navigator.getGamepads) startGamepadLoop();
+    }
+
+    loadSettings();
+    setupEvents();
+    updateUI();
+  </script>
+</body>
+</html>
