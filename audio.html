@@ -252,6 +252,22 @@
       font-weight: 700;
     }
 
+    .study-text {
+      min-height: 2.6rem;
+	  max-height: 5.1rem;
+      overflow-y: auto;
+      padding: .5rem .7rem;
+      border: 1px solid rgba(56,189,248,.2);
+      border-radius: 12px;
+      background: rgba(15,23,42,.38);
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.38;
+      text-align: center;
+    }
+
+    .study-text[hidden] { display: none; }
+
     .controls-section {
       display: grid;
       gap: 10px;
@@ -466,6 +482,19 @@
             </div>
           </div>
 
+          <div class="folder-box">
+            <strong>Texto do idioma estudado <span class="hint">(opcional)</span></strong>
+            <div class="hint" id="studyTextInfo">Nenhum arquivo TXT selecionado.</div>
+            <div class="folder-actions">
+              <div class="folder-picker">
+                <button type="button" tabindex="-1" aria-hidden="true">Escolher TXT</button>
+                <input id="studyTextFile" class="file-input" type="file" accept=".txt,text/plain" aria-label="Escolher arquivo TXT com as frases" />
+              </div>
+              <button id="clearStudyText" type="button" disabled>Remover texto</button>
+            </div>
+            <div class="hint">Uma frase por linha, na mesma ordem dos áudios do idioma estudado.</div>
+          </div>
+
           <div id="loadStatus" class="status">Use “Escolher pasta” para carregar os arquivos pelo seletor de pastas disponível no navegador.</div>
         </section>
 
@@ -578,6 +607,8 @@
             <div class="progress-bar" id="progressBar"></div>
           </div>
 
+          <div id="studyTextDisplay" class="study-text" hidden aria-live="polite"></div>
+
           <div class="controls-section">
             <div class="controls transport-controls">
               <button id="playPause" class="primary span-2">▶ Play</button>
@@ -631,6 +662,7 @@
     const state = {
       filesA: [],
       filesB: [],
+      studyLines: [],
       pairs: [],
       sessionPairs: [],
       currentSessionIndex: 0,
@@ -670,8 +702,11 @@
       settingsPanel: $('settingsPanel'),
       filesA: $('filesA'),
       filesB: $('filesB'),
+      studyTextFile: $('studyTextFile'),
+      clearStudyText: $('clearStudyText'),
       folderAInfo: $('folderAInfo'),
       folderBInfo: $('folderBInfo'),
+      studyTextInfo: $('studyTextInfo'),
       loadStatus: $('loadStatus'),
       startIndex: $('startIndex'),
       endIndex: $('endIndex'),
@@ -688,6 +723,7 @@
       bigIndex: $('bigIndex'),
       nowText: $('nowText'),
       phaseLabel: $('phaseLabel'),
+      studyTextDisplay: $('studyTextDisplay'),
       progressBar: $('progressBar'),
       playPause: $('playPause'),
       prevPair: $('prevPair'),
@@ -784,6 +820,51 @@
       buildPairsIfReady();
     }
 
+    async function loadStudyText(file) {
+      if (!file) return;
+
+      try {
+        const rawText = await file.text();
+        const lines = rawText.replace(/^\uFEFF/, '').split(/\r?\n/);
+
+        while (lines.length && !lines.at(-1).trim()) lines.pop();
+
+        state.studyLines = lines.map(line => line.trim());
+        els.studyTextInfo.textContent = state.studyLines.length
+          ? `${file.name} · ${state.studyLines.length} frase(s).`
+          : `${file.name} · nenhuma frase encontrada.`;
+
+        if (!state.studyLines.length) {
+          setStatus('O arquivo TXT selecionado não contém frases.', 'warn');
+        } else if (state.pairs.length && state.studyLines.length !== state.pairs.length) {
+          setStatus(`Atenção: o TXT tem ${state.studyLines.length} linha(s), mas há ${state.pairs.length} ${isPairedMode() ? 'par(es)' : 'áudio(s)'}.`, 'warn');
+        } else {
+          setStatus(`Texto carregado: ${state.studyLines.length} frase(s) disponíveis para consulta.`, 'ok');
+        }
+
+        updateUI();
+      } catch (err) {
+        state.studyLines = [];
+        els.studyTextInfo.textContent = 'Não foi possível ler o arquivo TXT.';
+        setStatus(`Falha ao ler o TXT: ${err.message}`, 'err');
+        updateUI();
+      }
+    }
+
+    function clearStudyText() {
+      state.studyLines = [];
+      els.studyTextFile.value = '';
+      els.studyTextInfo.textContent = 'Nenhum arquivo TXT selecionado.';
+      setStatus('Texto de consulta removido.', 'ok');
+      updateUI();
+    }
+
+    function warnIfStudyTextDoesNotMatch() {
+      if (state.studyLines.length && state.studyLines.length !== state.pairs.length) {
+        setStatus(`Atenção: o TXT tem ${state.studyLines.length} linha(s), mas há ${state.pairs.length} ${isPairedMode() ? 'par(es)' : 'áudio(s)'}. A exibição seguirá a posição de cada item.`, 'warn');
+      }
+    }
+
     function getPlaybackMode() {
       return els.playbackMode.value || 'paired';
     }
@@ -845,6 +926,7 @@
       if (Number(els.endIndex.value) < Number(els.startIndex.value)) els.endIndex.value = state.pairs.length;
 
       applySession();
+      warnIfStudyTextDoesNotMatch();
     }
 
     function applySession(options = {}) {
@@ -944,6 +1026,28 @@
 
     function getCurrentPair() {
       return state.sessionPairs[state.currentSessionIndex] || null;
+    }
+
+    function getStudyTextForCurrentPair() {
+      const pair = getCurrentPair();
+      if (!pair) return '';
+      return state.studyLines[pair.originalIndex - 1] || '';
+    }
+
+    function shouldShowStudyText() {
+      const effectivePhase = state.phase === 'paused' ? state.phaseBeforePause : state.phase;
+      if (isPairedMode()) {
+        return ['playingB', 'playingSingleB'].includes(effectivePhase);
+      }
+      return ['playingA', 'playingB', 'playingSingleA', 'playingSingleB'].includes(effectivePhase);
+    }
+
+    function updateStudyText() {
+      const hasStudyText = Boolean(state.studyLines.length);
+      const text = getStudyTextForCurrentPair();
+      const show = Boolean(text && shouldShowStudyText());
+      els.studyTextDisplay.hidden = !hasStudyText;
+      els.studyTextDisplay.textContent = show ? text : '';
     }
 
     function getRepeatTarget() {
@@ -1368,6 +1472,8 @@
       els.pauseAB.disabled = !isPairedMode();
       els.hardMode.textContent = state.hardMode ? 'Sair do difícil' : 'Modo difícil';
       els.exitRepeat.textContent = 'Sair do difícil';
+      els.clearStudyText.disabled = !state.studyLines.length;
+      updateStudyText();
 
       for (const btn of [els.playPause, els.prevPair, els.nextPair, els.repeatPair, els.markDifficult]) {
         btn.disabled = !hasSession;
@@ -1586,6 +1692,8 @@
 
       els.filesA.addEventListener('change', e => setFiles('A', e.target.files, getFolderName(e.target.files)));
       els.filesB.addEventListener('change', e => setFiles('B', e.target.files, getFolderName(e.target.files)));
+      els.studyTextFile.addEventListener('change', e => loadStudyText(e.target.files[0]));
+      els.clearStudyText.addEventListener('click', clearStudyText);
 
       els.playbackMode.addEventListener('change', () => {
         saveSettings();
