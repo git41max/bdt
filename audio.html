@@ -199,6 +199,23 @@
 
     .folder-actions button { padding: .6rem .8rem; }
 
+    .inline-setting {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .inline-setting label {
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .inline-setting select {
+      min-width: 0;
+      padding: .55rem .65rem;
+    }
+
     .folder-picker {
       position: relative;
       display: inline-flex;
@@ -589,6 +606,14 @@
               </div>
               <button id="clearStudyText" type="button" disabled>Remover texto</button>
             </div>
+            <div class="inline-setting">
+              <label for="studyTextTarget">Texto:</label>
+              <select id="studyTextTarget" aria-label="Áudio correspondente ao texto">
+                <option value="B" selected>Pasta B</option>
+                <option value="A">Pasta A</option>
+                <option value="any">Qualquer áudio</option>
+              </select>
+            </div>
           </div>
 
           <div id="loadStatus" class="status">Selecione as pastas para iniciar.</div>
@@ -724,7 +749,7 @@
         <button id="helpClose" class="icon-button" type="button" aria-label="Fechar ajuda">×</button>
       </div>
       <section class="help-notes">
-        <p><strong>TXT opcional:</strong> use uma frase por linha, na mesma ordem dos áudios do idioma estudado.</p>
+        <p><strong>TXT opcional:</strong> use uma frase por linha, na mesma ordem dos áudios, e indique em <strong>Texto</strong> a qual pasta as frases correspondem.</p>
         <p><strong>Modos de uma pasta:</strong> a pausa A → B e o botão do outro idioma não são utilizados.</p>
         <p><strong>Preset:</strong> percorre blocos dentro do intervalo definido em Início e Fim.</p>
       </section>
@@ -828,6 +853,7 @@
       filesB: $('filesB'),
       studyTextFile: $('studyTextFile'),
       clearStudyText: $('clearStudyText'),
+      studyTextTarget: $('studyTextTarget'),
       folderAInfo: $('folderAInfo'),
       folderBInfo: $('folderBInfo'),
       studyTextInfo: $('studyTextInfo'),
@@ -898,6 +924,7 @@
         pauseNext: els.pauseNext.value,
         repeatEachPair: els.repeatEachPair.value,
         presetSize: els.presetSize.value,
+        studyTextTarget: els.studyTextTarget.value,
         currentOriginalIndex: getCurrentPair()?.originalIndex ?? 1,
         difficult: Array.from(state.difficult),
       };
@@ -909,7 +936,7 @@
         const raw = localStorage.getItem('pairedAudioPlayerSettings');
         if (!raw) return;
         const data = JSON.parse(raw);
-        for (const key of ['startIndex', 'endIndex', 'playbackMode', 'pauseAB', 'pauseNext', 'repeatEachPair', 'presetSize']) {
+        for (const key of ['startIndex', 'endIndex', 'playbackMode', 'pauseAB', 'pauseNext', 'repeatEachPair', 'presetSize', 'studyTextTarget']) {
           if (data[key] !== undefined && els[key]) els[key].value = data[key];
         }
         if (Array.isArray(data.difficult)) state.difficult = new Set(data.difficult.map(Number));
@@ -1000,14 +1027,18 @@
 
     function buildPairsIfReady() {
       const mode = getPlaybackMode();
+
+      // Ao alternar o modo, o select já contém o novo valor, mas os itens
+      // da sessão ainda têm a estrutura do modo anterior. Limpe-os antes
+      // de atualizar a interface para não tentar acessar fileA/fileB ausentes.
+      state.pairs = [];
+      state.sessionPairs = [];
       stopPlayback();
       state.hardMode = false;
       state.presetMode = false;
       state.presetStartIndex = 1;
       state.presetRangeStartIndex = 1;
       state.presetRangeEndIndex = 1;
-      state.pairs = [];
-      state.sessionPairs = [];
 
       if (mode === 'paired') {
         if (!state.filesA.length || !state.filesB.length) {
@@ -1204,19 +1235,36 @@
       return state.studyLines[pair.originalIndex - 1] || '';
     }
 
+    function getStudyTextTarget() {
+      return els.studyTextTarget.value || 'B';
+    }
+
+    function canShowStudyTextInCurrentMode() {
+      const target = getStudyTextTarget();
+      const mode = getPlaybackMode();
+      return target === 'any' || (target === 'A' && mode !== 'onlyB') || (target === 'B' && mode !== 'onlyA');
+    }
+
     function shouldShowStudyText() {
       const effectivePhase = state.phase === 'paused' ? state.phaseBeforePause : state.phase;
-      if (isPairedMode()) {
-        return ['playingB', 'playingSingleB'].includes(effectivePhase);
+      const target = getStudyTextTarget();
+
+      if (target === 'any') {
+        return ['playingA', 'playingB', 'playingSingleA', 'playingSingleB'].includes(effectivePhase);
       }
-      return ['playingA', 'playingB', 'playingSingleA', 'playingSingleB'].includes(effectivePhase);
+
+      if (target === 'A') {
+        return ['playingA', 'playingSingleA'].includes(effectivePhase);
+      }
+
+      return ['playingB', 'playingSingleB'].includes(effectivePhase);
     }
 
     function updateStudyText() {
-      const hasStudyText = Boolean(state.studyLines.length);
+      const textEnabled = Boolean(state.studyLines.length && canShowStudyTextInCurrentMode());
       const text = getStudyTextForCurrentPair();
-      const show = Boolean(text && shouldShowStudyText());
-      els.studyTextDisplay.hidden = !hasStudyText;
+      const show = Boolean(textEnabled && text && shouldShowStudyText());
+      els.studyTextDisplay.hidden = !textEnabled;
       els.studyTextDisplay.textContent = show ? text : '';
     }
 
@@ -1892,6 +1940,10 @@
       els.filesB.addEventListener('change', e => setFiles('B', e.target.files, getFolderName(e.target.files)));
       els.studyTextFile.addEventListener('change', e => loadStudyText(e.target.files[0]));
       els.clearStudyText.addEventListener('click', clearStudyText);
+      els.studyTextTarget.addEventListener('change', () => {
+        saveSettings();
+        updateStudyText();
+      });
 
       els.playbackMode.addEventListener('change', () => {
         saveSettings();
