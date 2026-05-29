@@ -108,6 +108,23 @@
       border-radius: 12px;
     }
 
+    .toolbar-button {
+      min-height: 44px;
+      padding: 0 .9rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .45rem;
+      border-radius: 12px;
+    }
+
+    .toolbar-button span:first-child {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .button-label { font-size: .9rem; }
+
     body:not(.settings-open) .settings-panel { display: none; }
     body:not(.settings-open) .grid { grid-template-columns: 1fr; }
 
@@ -400,6 +417,22 @@
       flex-wrap: wrap;
     }
 
+    .maintenance-actions {
+      display: grid;
+      gap: 8px;
+      padding-top: 12px;
+      margin-top: 2px;
+      border-top: 1px solid var(--border);
+    }
+
+    .maintenance-title {
+      color: var(--muted);
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
     .gamepad-diagnostic {
       display: grid;
       gap: 10px;
@@ -420,6 +453,61 @@
       font-size: .86rem;
     }
 
+    body.modal-open { overflow: hidden; }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(2,6,23,.72);
+      backdrop-filter: blur(5px);
+    }
+
+    .modal-backdrop[hidden] { display: none; }
+
+    .modal-panel {
+      width: min(760px, 100%);
+      max-height: min(92vh, 860px);
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .modal-header h2 { margin: 0 0 4px; }
+    .help-intro { margin: 0; color: var(--muted); font-size: .92rem; }
+
+    .help-notes {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(31,41,55,.5);
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .help-notes p { margin: 0; }
+    .help-notes strong { color: var(--text); }
+    .help-section { gap: 14px; }
+    .help-section h2 { display: none; }
+
     @media (max-width: 920px) {
       header, .now { grid-template-columns: 1fr; display: grid; }
       .grid { grid-template-columns: 1fr; }
@@ -429,6 +517,10 @@
 
     @media (max-width: 520px) {
       .row, .kbd-grid { grid-template-columns: 1fr; }
+      .toolbar-button { width: 44px; padding: 0; }
+      .toolbar-button .button-label { display: none; }
+      .badge { font-size: .82rem; padding: .42rem .6rem; }
+      .modal-panel { padding: 14px; }
       .controls {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
@@ -442,15 +534,20 @@
     }
   </style>
 </head>
-<body class="settings-open">
+<body>
   <div class="app">
     <header>
       <div>
         <h1>Audio Player</h1>
-        <p class="lead">Use duas pastas para treinar A → B ou selecione apenas uma pasta para escuta contínua no idioma estudado. Use a interface, o teclado ou o controle para repetir, avançar, usar presets e marcar frases difíceis.</p>
+        <p class="lead">Treino de áudio com pares A → B, reprodução contínua e presets.</p>
       </div>
       <div class="header-actions">
-        <button id="settingsToggle" class="icon-button" aria-label="Fechar configurações" aria-expanded="true">☰</button>
+        <button id="settingsToggle" class="toolbar-button" aria-label="Abrir configurações" aria-expanded="false">
+          <span aria-hidden="true">☰</span><span class="button-label">Configurações</span>
+        </button>
+        <button id="helpToggle" class="toolbar-button" type="button" aria-haspopup="dialog">
+          <span aria-hidden="true">?</span><span class="button-label">Ajuda</span>
+        </button>
         <div class="badge" id="gamepadStatus">🎮 Controle: não conectado</div>
       </div>
     </header>
@@ -458,7 +555,7 @@
     <div class="grid">
       <aside class="stack settings-panel" id="settingsPanel">
         <section class="card stack">
-          <h2>1. Pastas de áudio</h2>
+          <h2>Áudios</h2>
 
           <div class="folder-box">
             <strong>Pasta A</strong>
@@ -492,14 +589,13 @@
               </div>
               <button id="clearStudyText" type="button" disabled>Remover texto</button>
             </div>
-            <div class="hint">Uma frase por linha, na mesma ordem dos áudios do idioma estudado.</div>
           </div>
 
-          <div id="loadStatus" class="status">Use “Escolher pasta” para carregar os arquivos pelo seletor de pastas disponível no navegador.</div>
+          <div id="loadStatus" class="status">Selecione as pastas para iniciar.</div>
         </section>
 
         <section class="card stack">
-          <h2>2. Sessão</h2>
+          <h2>Sessão</h2>
           <div>
             <label for="playbackMode">Modo de reprodução</label>
             <select id="playbackMode">
@@ -507,7 +603,6 @@
               <option value="onlyA">Somente pasta A</option>
               <option value="onlyB">Somente pasta B</option>
             </select>
-            <div class="hint">Nos modos de uma pasta, a pausa A → B e o botão do outro idioma não são usados.</div>
           </div>
           <div class="row">
             <div>
@@ -542,55 +637,17 @@
           <div class="footer-actions">
             <button id="applySession" class="good">Aplicar sessão</button>
             <button id="allPairs" class="good">Todos</button>
-            <button id="clearProgress" class="warn">Limpar progresso</button>
-            <button id="clearDifficult" class="danger">Limpar difíceis</button>
+            <button id="resetSession" class="warn">Resetar sessão</button>
           </div>
-        </section>
-
-        <section class="card stack">
-          <h2>Atalhos</h2>
-          <div class="shortcut-section">
-            <div class="shortcut-title">Teclado</div>
-            <div class="kbd-grid">
-              <div><kbd>Espaço</kbd> play / pause</div>
-			  <div><kbd>R</kbd> entrar / sair da repetição</div>
-              <div><kbd>→</kbd> próximo par</div>
-              <div><kbd>←</kbd> par anterior</div>
-              <div><kbd>1</kbd> repetir A</div>
-              <div><kbd>2</kbd> repetir B</div>
-              <div><kbd>D</kbd> marcar difícil</div>
-              <div><kbd>F</kbd> entrar / sair do modo difícil</div>
-              <div><kbd>P</kbd> carregar preset</div>
-              <div><kbd>S</kbd> sair do preset</div>
-              <div><kbd>[</kbd> diminuir pausa A→B</div>
-              <div><kbd>]</kbd> aumentar pausa A→B</div>
-            </div>
-          </div>
-
-          <div class="shortcut-section">
-            <div class="shortcut-title">Controle</div>
-            <div class="kbd-grid">
-              <div><kbd class="gamepad-kbd">A</kbd> play / pause</div>
-			  <div><kbd class="gamepad-kbd">Y</kbd> entrar / sair da repetição</div>
-              <div><kbd class="gamepad-kbd">→</kbd> próximo par</div>
-              <div><kbd class="gamepad-kbd">←</kbd> par anterior</div>
-              <div><kbd class="gamepad-kbd">B</kbd> marcar difícil</div>
-              <div><kbd class="gamepad-kbd">X</kbd> entrar / sair do modo difícil</div>
-              <div><kbd class="gamepad-kbd">SL</kbd> repetir A</div>
-              <div><kbd class="gamepad-kbd">SR</kbd> repetir B</div>
-              <div><kbd class="gamepad-kbd">R / ↑</kbd> carregar preset</div>
-              <div><kbd class="gamepad-kbd">ZR / ↓</kbd> sair do preset</div>
-            </div>
-            <div class="gamepad-diagnostic">
-              <div class="footer-actions">
-                <button id="toggleGamepadDiagnostic" type="button">Testar botões</button>
-                <button id="clearGamepadDiagnostic" type="button">Limpar teste</button>
-              </div>
-              <div id="gamepadDiagnosticOutput" class="diagnostic-output" aria-live="polite">Diagnóstico desligado. Ative o teste para identificar botões no iPhone.</div>
-              <div class="hint">Durante o teste, os botões do controle não executam ações no player.</div>
+          <div class="maintenance-actions">
+            <div class="maintenance-title">Manutenção</div>
+            <div class="footer-actions">
+              <button id="clearProgress" class="warn">Limpar progresso</button>
+              <button id="clearDifficult" class="danger">Limpar difíceis</button>
             </div>
           </div>
         </section>
+
       </aside>
 
       <main class="player-main">
@@ -656,6 +713,68 @@
     </div>
   </div>
 
+
+  <div id="helpModal" class="modal-backdrop" hidden>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="modal-header">
+        <div>
+          <h2 id="helpTitle">Ajuda e atalhos</h2>
+          <p class="help-intro">Use duas pastas para treinar A → B ou uma única pasta para reprodução contínua.</p>
+        </div>
+        <button id="helpClose" class="icon-button" type="button" aria-label="Fechar ajuda">×</button>
+      </div>
+      <section class="help-notes">
+        <p><strong>TXT opcional:</strong> use uma frase por linha, na mesma ordem dos áudios do idioma estudado.</p>
+        <p><strong>Modos de uma pasta:</strong> a pausa A → B e o botão do outro idioma não são utilizados.</p>
+        <p><strong>Preset:</strong> percorre blocos dentro do intervalo definido em Início e Fim.</p>
+      </section>
+        <section class="stack help-section">
+          <h2>Atalhos</h2>
+          <div class="shortcut-section">
+            <div class="shortcut-title">Teclado</div>
+            <div class="kbd-grid">
+              <div><kbd>Espaço</kbd> play / pause</div>
+			  <div><kbd>R</kbd> entrar / sair da repetição</div>
+              <div><kbd>→</kbd> próximo par</div>
+              <div><kbd>←</kbd> par anterior</div>
+              <div><kbd>1</kbd> repetir A</div>
+              <div><kbd>2</kbd> repetir B</div>
+              <div><kbd>D</kbd> marcar difícil</div>
+              <div><kbd>F</kbd> entrar / sair do modo difícil</div>
+              <div><kbd>P</kbd> carregar preset</div>
+              <div><kbd>S</kbd> sair do preset</div>
+              <div><kbd>[</kbd> diminuir pausa A→B</div>
+              <div><kbd>]</kbd> aumentar pausa A→B</div>
+            </div>
+          </div>
+
+          <div class="shortcut-section">
+            <div class="shortcut-title">Controle</div>
+            <div class="kbd-grid">
+              <div><kbd class="gamepad-kbd">A</kbd> play / pause</div>
+			  <div><kbd class="gamepad-kbd">Y</kbd> entrar / sair da repetição</div>
+              <div><kbd class="gamepad-kbd">→</kbd> próximo par</div>
+              <div><kbd class="gamepad-kbd">←</kbd> par anterior</div>
+              <div><kbd class="gamepad-kbd">B</kbd> marcar difícil</div>
+              <div><kbd class="gamepad-kbd">X</kbd> entrar / sair do modo difícil</div>
+              <div><kbd class="gamepad-kbd">SL</kbd> repetir A</div>
+              <div><kbd class="gamepad-kbd">SR</kbd> repetir B</div>
+              <div><kbd class="gamepad-kbd">R / ↑</kbd> carregar preset</div>
+              <div><kbd class="gamepad-kbd">ZR / ↓</kbd> sair do preset</div>
+            </div>
+            <div class="gamepad-diagnostic">
+              <div class="footer-actions">
+                <button id="toggleGamepadDiagnostic" type="button">Testar botões</button>
+                <button id="clearGamepadDiagnostic" type="button">Limpar teste</button>
+              </div>
+              <div id="gamepadDiagnosticOutput" class="diagnostic-output" aria-live="polite">Diagnóstico desligado. Ative o teste para identificar os botões.</div>
+              <div class="hint">Durante o teste, os botões do controle não executam ações no player.</div>
+            </div>
+          </div>
+        </section>
+    </div>
+  </div>
+
   <script>
     const audioExts = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm']);
 
@@ -674,6 +793,8 @@
       hardMode: false,
       presetMode: false,
       presetStartIndex: 1,
+      presetRangeStartIndex: 1,
+      presetRangeEndIndex: 1,
       difficult: new Set(),
       objectUrl: null,
       waitTimer: null,
@@ -700,6 +821,9 @@
     const els = {
       settingsToggle: $('settingsToggle'),
       settingsPanel: $('settingsPanel'),
+      helpToggle: $('helpToggle'),
+      helpModal: $('helpModal'),
+      helpClose: $('helpClose'),
       filesA: $('filesA'),
       filesB: $('filesB'),
       studyTextFile: $('studyTextFile'),
@@ -718,6 +842,7 @@
 
       applySession: $('applySession'),
       allPairs: $('allPairs'),
+      resetSession: $('resetSession'),
       clearProgress: $('clearProgress'),
       clearDifficult: $('clearDifficult'),
       bigIndex: $('bigIndex'),
@@ -812,10 +937,10 @@
       const files = Array.from(fileList).filter(isAudioFile).sort(naturalCompare);
       if (which === 'A') {
         state.filesA = files;
-        els.folderAInfo.textContent = files.length ? `${files.length} arquivo(s)${folderName ? ` em “${folderName}”` : ''}. Primeiro: ${files[0].name}` : 'Nenhum áudio encontrado.';
+        els.folderAInfo.textContent = files.length ? `${folderName || 'Pasta A'} · ${files.length} arquivo(s)` : 'Nenhum áudio encontrado.';
       } else {
         state.filesB = files;
-        els.folderBInfo.textContent = files.length ? `${files.length} arquivo(s)${folderName ? ` em “${folderName}”` : ''}. Primeiro: ${files[0].name}` : 'Nenhum áudio encontrado.';
+        els.folderBInfo.textContent = files.length ? `${folderName || 'Pasta B'} · ${files.length} arquivo(s)` : 'Nenhum áudio encontrado.';
       }
       buildPairsIfReady();
     }
@@ -879,6 +1004,8 @@
       state.hardMode = false;
       state.presetMode = false;
       state.presetStartIndex = 1;
+      state.presetRangeStartIndex = 1;
+      state.presetRangeEndIndex = 1;
       state.pairs = [];
       state.sessionPairs = [];
 
@@ -947,6 +1074,12 @@
       const end = clamp(Number(els.endIndex.value || total), start, total);
       els.startIndex.value = start;
       els.endIndex.value = end;
+
+      if (!keepPresetMode) {
+        state.presetRangeStartIndex = start;
+        state.presetRangeEndIndex = end;
+      }
+
       state.sessionPairs = state.pairs.slice(start - 1, end);
 
       state.currentSessionIndex = 0;
@@ -987,14 +1120,23 @@
       }
 
       const size = getPresetSize();
-      let nextStart = 1;
+      const rangeStart = state.presetMode
+        ? state.presetRangeStartIndex
+        : clamp(Number(els.startIndex.value || 1), 1, total);
+      const rangeEnd = state.presetMode
+        ? state.presetRangeEndIndex
+        : clamp(Number(els.endIndex.value || total), rangeStart, total);
+      let nextStart = rangeStart;
 
       if (state.presetMode) {
         const candidateStart = state.presetStartIndex + size;
-        nextStart = candidateStart <= total ? candidateStart : 1;
+        nextStart = candidateStart <= rangeEnd ? candidateStart : rangeStart;
+      } else {
+        state.presetRangeStartIndex = rangeStart;
+        state.presetRangeEndIndex = rangeEnd;
       }
 
-      const nextEnd = Math.min(nextStart + size - 1, total);
+      const nextEnd = Math.min(nextStart + size - 1, rangeEnd);
 
       state.presetMode = true;
       state.presetStartIndex = nextStart;
@@ -1007,7 +1149,7 @@
         keepPresetMode: true,
       });
 
-      setStatus(`Preset carregado: ${isPairedMode() ? 'pares' : 'áudios'} ${nextStart}–${nextEnd} de ${total}.`, 'ok');
+      setStatus(`Preset carregado: ${isPairedMode() ? 'pares' : 'áudios'} ${nextStart}–${nextEnd} do intervalo ${rangeStart}–${rangeEnd}.`, 'ok');
     }
 
     function exitPreset(autoPlay = false) {
@@ -1016,8 +1158,36 @@
         return;
       }
 
-      loadAllPairs(autoPlay);
-      setStatus(`Preset encerrado. Todos os ${isPairedMode() ? 'pares' : 'áudios'} foram carregados a partir do primeiro.`, 'ok');
+      const rangeStart = state.presetRangeStartIndex;
+      const rangeEnd = state.presetRangeEndIndex;
+      state.presetMode = false;
+      state.presetStartIndex = rangeStart;
+      els.startIndex.value = rangeStart;
+      els.endIndex.value = rangeEnd;
+      applySession({ preserveOriginalIndex: rangeStart, autoPlay });
+      setStatus(`Preset encerrado. Intervalo selecionado restaurado: ${rangeStart}–${rangeEnd}.`, 'ok');
+    }
+
+    function resetSessionSettings() {
+      const total = state.pairs.length;
+
+      state.presetMode = false;
+      state.presetStartIndex = 1;
+      state.presetRangeStartIndex = 1;
+      state.presetRangeEndIndex = total || 1;
+
+      els.startIndex.value = 1;
+      els.endIndex.value = total || 1;
+      els.pauseAB.value = 3;
+      els.pauseNext.value = 1;
+      els.repeatEachPair.value = 1;
+      els.presetSize.value = 5;
+
+      applySession({ preserveOriginalIndex: 1 });
+      saveSettings();
+
+      const rangeText = total ? ` Intervalo restaurado: 1–${total}.` : '';
+      setStatus(`Configurações da sessão redefinidas para os valores padrão.${rangeText}`, 'ok');
     }
 
     function clamp(value, min, max) {
@@ -1402,6 +1572,8 @@
       state.currentRepeatCount = 1;
       state.presetMode = false;
       state.presetStartIndex = 1;
+      state.presetRangeStartIndex = Number(els.startIndex.value || 1);
+      state.presetRangeEndIndex = Number(els.endIndex.value || state.presetRangeStartIndex);
       saveSettings();
       updateUI();
       setStatus('Progresso limpo. As marcações de difíceis foram mantidas.', 'ok');
@@ -1555,7 +1727,7 @@
         : 'aguardando controle...';
       const logText = state.gamepadDiagnosticLog.length
         ? state.gamepadDiagnosticLog.join('\n')
-        : 'Pressione R e ZR no Joy-Con.';
+        : 'Pressione os botões no Joy-Con para checagem.';
 
       els.gamepadDiagnosticOutput.textContent = `Controle: ${controllerText}\n${logText}`;
     }
@@ -1683,11 +1855,37 @@
       state.gamepadLoop = requestAnimationFrame(tick);
     }
 
+    function setSettingsVisibility(isOpen) {
+      document.body.classList.toggle('settings-open', isOpen);
+      els.settingsToggle.setAttribute('aria-expanded', String(isOpen));
+      els.settingsToggle.setAttribute('aria-label', isOpen ? 'Fechar configurações' : 'Abrir configurações');
+    }
+
+    function initializeResponsiveLayout() {
+      setSettingsVisibility(window.matchMedia('(min-width: 921px)').matches);
+    }
+
+    function openHelp() {
+      els.helpModal.hidden = false;
+      document.body.classList.add('modal-open');
+      els.helpClose.focus();
+    }
+
+    function closeHelp() {
+      if (els.helpModal.hidden) return;
+      els.helpModal.hidden = true;
+      document.body.classList.remove('modal-open');
+      els.helpToggle.focus();
+    }
+
     function setupEvents() {
       els.settingsToggle.addEventListener('click', () => {
-        const isOpen = document.body.classList.toggle('settings-open');
-        els.settingsToggle.setAttribute('aria-expanded', String(isOpen));
-        els.settingsToggle.setAttribute('aria-label', isOpen ? 'Fechar configurações' : 'Abrir configurações');
+        setSettingsVisibility(!document.body.classList.contains('settings-open'));
+      });
+      els.helpToggle.addEventListener('click', openHelp);
+      els.helpClose.addEventListener('click', closeHelp);
+      els.helpModal.addEventListener('click', event => {
+        if (event.target === els.helpModal) closeHelp();
       });
 
       els.filesA.addEventListener('change', e => setFiles('A', e.target.files, getFolderName(e.target.files)));
@@ -1702,6 +1900,7 @@
 
       els.applySession.addEventListener('click', applySession);
       els.allPairs.addEventListener('click', () => loadAllPairs(false));
+      els.resetSession.addEventListener('click', resetSessionSettings);
       els.clearProgress.addEventListener('click', clearProgress);
       els.clearDifficult.addEventListener('click', clearDifficult);
       els.playPause.addEventListener('click', togglePlayPause);
@@ -1731,7 +1930,14 @@
         playCurrentSequence();
       });
 
-      document.addEventListener('keydown', handleKeydown);
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !els.helpModal.hidden) {
+          event.preventDefault();
+          closeHelp();
+          return;
+        }
+        handleKeydown(event);
+      });
 
       window.addEventListener('gamepadconnected', () => startGamepadLoop());
       window.addEventListener('gamepaddisconnected', () => {
@@ -1748,6 +1954,7 @@
     }
 
     loadSettings();
+    initializeResponsiveLayout();
     setupEvents();
     updateUI();
   </script>
