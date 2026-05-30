@@ -342,6 +342,20 @@
       transition: width .18s ease;
     }
 
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: -10px;
+      color: var(--muted);
+      font-size: .82rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .time-display {
+      white-space: nowrap;
+    }
+
     .details {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -688,6 +702,10 @@
           <div class="progress-wrap" aria-label="Progresso da sessão">
             <div class="progress-bar" id="progressBar"></div>
           </div>
+          <div class="progress-meta" aria-live="polite">
+            <span id="elapsedTime" class="time-display">Decorrido: 00:00</span>
+            <span id="remainingTime" class="time-display">Restante: --:--</span>
+          </div>
 
           <div id="studyTextDisplay" class="study-text" hidden aria-live="polite"></div>
 
@@ -825,8 +843,12 @@
       waitTimer: null,
       waitStartedAt: 0,
       waitDurationMs: 0,
+      waitElapsedOffsetMs: 0,
       waitCallback: null,
       pausedWait: null,
+      durationCache: new Map(),
+      durationLoadToken: 0,
+      progressTicker: null,
       gamepadLoop: null,
       lastButtons: [],
       lastAxes: [],
@@ -876,6 +898,8 @@
       phaseLabel: $('phaseLabel'),
       studyTextDisplay: $('studyTextDisplay'),
       progressBar: $('progressBar'),
+      elapsedTime: $('elapsedTime'),
+      remainingTime: $('remainingTime'),
       playPause: $('playPause'),
       prevPair: $('prevPair'),
       nextPair: $('nextPair'),
@@ -1125,6 +1149,7 @@
       state.phase = 'idle';
       saveSettings();
       updateUI();
+      primeSessionDurations();
       if (autoPlay) playCurrentSequence();
     }
 
@@ -1284,6 +1309,166 @@
       return Math.max(0, Number(els.pauseNext.value || 0) * 1000);
     }
 
+    function getFileKey(file) {
+      if (!file) return '';
+      return `${file.name}:${file.size}:${file.lastModified}`;
+    }
+
+    function getCachedDurationMs(file) {
+      const duration = state.durationCache.get(getFileKey(file));
+      return Number.isFinite(duration) ? duration : null;
+    }
+
+    function loadAudioDurationMs(file) {
+      const key = getFileKey(file);
+      if (!file || state.durationCache.has(key)) return Promise.resolve(state.durationCache.get(key) ?? 0);
+
+      return new Promise(resolve => {
+        const probe = new Audio();
+        const url = URL.createObjectURL(file);
+        const finish = durationMs => {
+          URL.revokeObjectURL(url);
+          probe.removeAttribute('src');
+          state.durationCache.set(key, Number.isFinite(durationMs) ? durationMs : 0);
+          resolve(state.durationCache.get(key));
+        };
+
+        probe.preload = 'metadata';
+        probe.addEventListener('loadedmetadata', () => finish(probe.duration * 1000), { once: true });
+        probe.addEventListener('error', () => finish(0), { once: true });
+        probe.src = url;
+      });
+    }
+
+    async function primeSessionDurations() {
+      const token = ++state.durationLoadToken;
+      const files = [];
+      for (const pair of state.sessionPairs) {
+        if (pair.fileA) files.push(pair.fileA);
+        if (pair.fileB) files.push(pair.fileB);
+      }
+
+      for (const file of files) {
+        if (token !== state.durationLoadToken) return;
+        await loadAudioDurationMs(file);
+        if (token !== state.durationLoadToken) return;
+        updateProgressTimes();
+      }
+    }
+
+    function getAudioPartDurationMs(pair) {
+      if (!pair) return null;
+      const durationA = pair.fileA ? getCachedDurationMs(pair.fileA) : 0;
+      const durationB = pair.fileB ? getCachedDurationMs(pair.fileB) : 0;
+      if (durationA === null || durationB === null) return null;
+      return durationA + durationB;
+    }
+
+    function getItemDurationMs(pair) {
+      const audioDuration = getAudioPartDurationMs(pair);
+      if (audioDuration === null) return null;
+      return audioDuration + (isPairedMode() ? getPauseABMs() : 0) + getPauseNextMs();
+    }
+
+    function getWaitElapsedMs() {
+      if (state.waitTimer) {
+        return Math.max(0, state.waitElapsedOffsetMs + performance.now() - state.waitStartedAt);
+      }
+
+      if (state.phase === 'paused' && state.pausedWait) {
+        return Math.max(0, state.pausedWait.elapsedOffsetMs || 0);
+      }
+
+      return 0;
+    }
+
+    function getCurrentItemOffsetMs(pair) {
+      if (!pair) return 0;
+      const effectivePhase = state.phase === 'paused' ? state.phaseBeforePause : state.phase;
+      const durationA = pair.fileA ? getCachedDurationMs(pair.fileA) : 0;
+      const durationB = pair.fileB ? getCachedDurationMs(pair.fileB) : 0;
+
+      if (durationA === null || durationB === null) return 0;
+
+      if (effectivePhase === 'playingA' || effectivePhase === 'playingSingleA') {
+        return Math.min(durationA, audio.currentTime * 1000 || 0);
+      }
+
+      if (effectivePhase === 'waitingAB') {
+        return durationA + Math.min(getPauseABMs(), getWaitElapsedMs());
+      }
+
+      if (effectivePhase === 'playingB' || effectivePhase === 'playingSingleB') {
+        return durationA + getPauseABMs() + Math.min(durationB, audio.currentTime * 1000 || 0);
+      }
+
+      if (effectivePhase === 'waitingNext') {
+        const beforeFinalPause = durationA + (isPairedMode() ? getPauseABMs() + durationB : 0);
+        return beforeFinalPause + Math.min(getPauseNextMs(), getWaitElapsedMs());
+      }
+
+      return 0;
+    }
+
+    function getSessionTimeSummary() {
+      if (!state.sessionPairs.length) return { elapsedMs: 0, remainingMs: null, totalMs: null };
+
+      const repeatTarget = getRepeatTarget();
+      let totalMs = 0;
+      let elapsedMs = 0;
+
+      for (let i = 0; i < state.sessionPairs.length; i += 1) {
+        const itemDuration = getItemDurationMs(state.sessionPairs[i]);
+        if (itemDuration === null) return { elapsedMs: null, remainingMs: null, totalMs: null };
+        totalMs += itemDuration * repeatTarget;
+        if (i < state.currentSessionIndex) elapsedMs += itemDuration * repeatTarget;
+      }
+
+      const currentItemDuration = getItemDurationMs(getCurrentPair()) || 0;
+      elapsedMs += currentItemDuration * Math.max(0, state.currentRepeatCount - 1);
+      elapsedMs += getCurrentItemOffsetMs(getCurrentPair());
+      elapsedMs = clamp(elapsedMs, 0, totalMs);
+
+      return {
+        elapsedMs,
+        remainingMs: Math.max(0, totalMs - elapsedMs),
+        totalMs,
+      };
+    }
+
+    function formatTime(ms) {
+      if (ms === null || !Number.isFinite(ms)) return '--:--';
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      if (hours) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      }
+      return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function updateProgressTimes() {
+      const { elapsedMs, remainingMs } = getSessionTimeSummary();
+      els.elapsedTime.textContent = `Decorrido: ${formatTime(elapsedMs)}`;
+      els.remainingTime.textContent = `Restante: ${formatTime(remainingMs)}`;
+    }
+
+    function startProgressTicker() {
+      if (state.progressTicker) return;
+
+      const tick = () => {
+        updateProgressTimes();
+        if (state.isPlaying || state.waitTimer) {
+          state.progressTicker = requestAnimationFrame(tick);
+        } else {
+          state.progressTicker = null;
+        }
+      };
+
+      state.progressTicker = requestAnimationFrame(tick);
+    }
+
     function revokeUrl() {
       if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
       state.objectUrl = null;
@@ -1294,6 +1479,7 @@
       state.waitTimer = null;
       state.waitStartedAt = 0;
       state.waitDurationMs = 0;
+      state.waitElapsedOffsetMs = 0;
       state.waitCallback = null;
     }
 
@@ -1353,6 +1539,7 @@
         state.pausedWait = {
           fn: state.waitCallback,
           remainingMs,
+          elapsedOffsetMs: state.waitElapsedOffsetMs + elapsed,
           phase: state.phase,
         };
         clearWait();
@@ -1369,9 +1556,9 @@
 
     function resumePlayback() {
       if (state.pausedWait?.fn) {
-        const { fn, remainingMs, phase } = state.pausedWait;
+        const { fn, remainingMs, elapsedOffsetMs, phase } = state.pausedWait;
         clearPausedWait();
-        scheduleNext(fn, remainingMs, phase);
+        scheduleNext(fn, remainingMs, phase, elapsedOffsetMs);
         return;
       }
 
@@ -1406,13 +1593,14 @@
       else resumePlayback();
     }
 
-    function scheduleNext(fn, ms, phase) {
+    function scheduleNext(fn, ms, phase, elapsedOffsetMs = 0) {
       clearWait();
       clearPausedWait();
       state.phase = phase;
       state.isPlaying = true;
       state.waitStartedAt = performance.now();
       state.waitDurationMs = ms;
+      state.waitElapsedOffsetMs = elapsedOffsetMs;
       state.waitCallback = fn;
       updateUI();
       state.waitTimer = setTimeout(() => {
@@ -1574,6 +1762,7 @@
       state.phase = 'idle';
       saveSettings();
       updateUI();
+      primeSessionDurations();
       setStatus(`Modo difícil ativado com ${state.sessionPairs.length} ${isPairedMode() ? 'par(es)' : 'áudio(s)'}.`, 'ok');
       if (shouldAutoPlay) playCurrentSequence();
     }
@@ -1682,6 +1871,8 @@
 
       const progress = state.sessionPairs.length ? ((state.currentSessionIndex + 1) / state.sessionPairs.length) * 100 : 0;
       els.progressBar.style.width = `${progress}%`;
+      updateProgressTimes();
+      if (state.isPlaying || state.waitTimer) startProgressTicker();
 
       const hasSession = Boolean(state.sessionPairs.length);
       els.hardMode.disabled = !state.pairs.length || (!state.difficult.size && !state.hardMode);
@@ -1970,7 +2161,10 @@
       els.clearGamepadDiagnostic.addEventListener('click', clearGamepadDiagnostic);
 
       for (const input of [els.startIndex, els.endIndex, els.pauseAB, els.pauseNext, els.repeatEachPair, els.presetSize]) {
-        input.addEventListener('change', saveSettings);
+        input.addEventListener('change', () => {
+          saveSettings();
+          updateProgressTimes();
+        });
       }
 
       els.pairTableBody.addEventListener('click', event => {
@@ -2009,6 +2203,7 @@
     initializeResponsiveLayout();
     setupEvents();
     updateUI();
+    primeSessionDurations();
   </script>
 </body>
 </html>
