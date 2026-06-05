@@ -1067,8 +1067,18 @@
                 id="btn-toggle-mode"
                 class="btn btn-outline btn-icon"
                 title="Alternar Sequencial/Aleatório"
+                aria-label="Alternar modo sequencial ou aleatório"
               >
                 🔀
+              </button>
+              <button
+                id="btn-repeat-media"
+                class="btn btn-outline"
+                title="Recarregar frase atual (I)"
+                aria-label="Recarregar frase atual"
+                disabled
+              >
+                🔁 Repetir
               </button>
               <button
                 id="btn-exclude"
@@ -1106,7 +1116,7 @@
 
     <script>
       /**
-       * StudySync v10 - Com Edição e Exportação de Texto
+       * StudySync v10.2 - Botão Repetir acionando a lógica do atalho I
        */
 
       // --- 1. Funções Utilitárias ---
@@ -2011,6 +2021,7 @@
         btnEdit: document.getElementById('btn-edit-phrase'),
         btnExclude: document.getElementById('btn-exclude'),
         btnToggleMode: document.getElementById('btn-toggle-mode'),
+        btnRepeatMedia: document.getElementById('btn-repeat-media'),
 
         // Modal Elements
         editModal: document.getElementById('edit-modal'),
@@ -2315,6 +2326,7 @@
 
         els.btnCheck.classList.remove('hidden');
         els.btnNext.classList.add('hidden');
+        els.btnRepeatMedia.disabled = true;
         state.isChecked = false;
         updateMetaDisplay();
       }
@@ -2344,6 +2356,7 @@
         els.originalRef.title = [
           'Clique: tocar/pausar mídia',
           'Duplo clique: reiniciar mídia',
+          'Botão Repetir: recarregar frase',
           'P: tocar/pausar mídia',
           'R: reiniciar mídia',
           'A: frase anterior',
@@ -2355,6 +2368,7 @@
         els.userInput.disabled = true;
         els.btnCheck.classList.add('hidden');
         els.btnNext.classList.remove('hidden');
+        els.btnRepeatMedia.disabled = false;
         state.isChecked = true;
 		state.ignoreEnterUntil = Date.now() + 300;
         playCurrentMedia(true, { notifyIfMissing: false });
@@ -2603,6 +2617,12 @@
       els.btnToggleMode.addEventListener('click', () => {
         state.isRandom = !state.isRandom;
         els.modeBadge.textContent = state.isRandom ? 'Aleatório' : 'Sequencial';
+      });
+      els.btnRepeatMedia.addEventListener('click', () => {
+        if (!state.isChecked) return;
+        if (!els.btnStart.disabled) {
+          els.btnStart.click();
+        }
       });
 
       els.userInput.addEventListener('keydown', (e) => {
