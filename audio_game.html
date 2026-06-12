@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jogo de Reconhecimento de Frases</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b13;
+      --bg-2: #101827;
+      --card: rgba(20, 29, 46, 0.88);
+      --card-2: rgba(30, 43, 66, 0.82);
+      --text: #eef4ff;
+      --muted: #aebbd1;
+      --soft: #738099;
+      --line: rgba(255, 255, 255, 0.12);
+      --accent: #81f7d8;
+      --accent-2: #a78bfa;
+      --good: #5ef0a6;
+      --bad: #ff8aa6;
+      --warn: #ffd166;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+      --radius: 24px;
+      --radius-sm: 16px;
+      --tap: 54px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    [hidden] { display: none !important; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(129, 247, 216, 0.15), transparent 34rem),
+        radial-gradient(circle at bottom right, rgba(167, 139, 250, 0.18), transparent 40rem),
+        linear-gradient(135deg, #070a12 0%, #0b1220 100%);
+      line-height: 1.5;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      filter: grayscale(0.3);
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 0.72rem 0.85rem;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.07);
+      outline: none;
+    }
+
+    input[type="file"] { padding: 0.65rem; }
+
+    input[type="checkbox"] {
+      width: auto;
+      min-height: 0;
+      accent-color: var(--accent);
+      transform: scale(1.1);
+    }
+
+    label { color: var(--muted); font-size: 0.92rem; }
+
+    .app {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    .hero {
+      margin: 0.75rem 0 1rem;
+      padding: 1.35rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -10% -50% 20%;
+      height: 180px;
+      background: radial-gradient(circle, rgba(129, 247, 216, 0.22), transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero h1 {
+      margin: 0 0 0.45rem;
+      font-size: clamp(1.7rem, 8vw, 3rem);
+      letter-spacing: -0.06em;
+      line-height: 0.98;
+    }
+
+    .hero p { margin: 0; color: var(--muted); max-width: 66ch; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .layout.session-active {
+      grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+    }
+
+    .layout.session-active .game-card {
+      order: -1;
+    }
+
+    .layout.config-collapsed {
+      grid-template-columns: minmax(0, 760px);
+      justify-content: center;
+    }
+
+    .panel, .game-card, .result-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .panel { padding: 1rem; }
+
+    .panel.hidden-config { display: none; }
+
+    .panel-header, .section-title, .row-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .panel h2, .game-card h2, .result-card h2 {
+      margin: 0;
+      font-size: 1.08rem;
+      letter-spacing: -0.02em;
+    }
+
+    .muted { color: var(--muted); }
+    .soft { color: var(--soft); }
+    .tiny { font-size: 0.78rem; }
+
+    .grid { display: grid; gap: 0.85rem; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .field {
+      display: grid;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+
+    .hint {
+      color: var(--soft);
+      font-size: 0.78rem;
+      margin-top: 0.08rem;
+    }
+
+    .section {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-title { margin-bottom: 0.75rem; }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 38px;
+    }
+
+    .btn {
+      min-height: var(--tap);
+      border-radius: 18px;
+      padding: 0.85rem 1rem;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+      transition: transform 0.16s ease, background 0.16s ease, border 0.16s ease, opacity 0.16s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .btn:hover:not(:disabled) { transform: translateY(-1px); background: rgba(255, 255, 255, 0.14); }
+    .btn:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
+    .btn.primary { color: #071016; background: linear-gradient(135deg, var(--accent), #a7f3d0); border-color: rgba(129, 247, 216, 0.7); }
+    .btn.secondary { background: rgba(167, 139, 250, 0.18); border-color: rgba(167, 139, 250, 0.35); }
+    .btn.good { color: #05140d; background: linear-gradient(135deg, var(--good), #c3fbd8); border-color: rgba(94, 240, 166, 0.65); }
+    .btn.bad { color: #210510; background: linear-gradient(135deg, var(--bad), #ffc4d1); border-color: rgba(255, 138, 166, 0.65); }
+    .btn.warn { color: #171005; background: linear-gradient(135deg, var(--warn), #ffe7a3); border-color: rgba(255, 209, 102, 0.65); }
+    .btn.ghost { background: transparent; box-shadow: none; }
+    .btn.small { min-height: 38px; padding: 0.45rem 0.72rem; border-radius: 12px; font-size: 0.86rem; }
+
+    .game-card { padding: 1rem; min-height: 0; }
+
+    .top-stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0.55rem;
+      margin-top: 0.8rem;
+    }
+
+    .stat {
+      padding: 0.7rem;
+      border-radius: 17px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--line);
+      min-width: 0;
+    }
+
+    .stat b { display: block; font-size: 1.1rem; letter-spacing: -0.03em; }
+    .stat span { display: block; color: var(--soft); font-size: 0.76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .progress-wrap { margin-top: 0.85rem; }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .progress-bar {
+      height: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.28s ease;
+    }
+
+    .markers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.28rem;
+      margin-top: 0.6rem;
+    }
+
+    .marker {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.17);
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .marker.good { background: var(--good); border-color: var(--good); }
+    .marker.bad { background: var(--bad); border-color: var(--bad); }
+    .marker.text { background: var(--warn); border-color: var(--warn); }
+
+    .round {
+      margin-top: 1rem;
+      padding: 1rem;
+      min-height: 355px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035));
+      display: grid;
+      align-content: start;
+      gap: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .round.paused::before {
+      content: "Sessão pausada";
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      display: grid;
+      place-items: center;
+      font-size: 1.2rem;
+      font-weight: 900;
+      background: rgba(8, 11, 19, 0.78);
+      backdrop-filter: blur(8px);
+    }
+
+    .listen-bubble {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      gap: 0.65rem;
+      min-height: 150px;
+      padding: 1.2rem;
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(129, 247, 216, 0.16), transparent 68%),
+        rgba(255,255,255,0.055);
+      border: 1px solid var(--line);
+    }
+
+    .ear {
+      width: 78px;
+      height: 78px;
+      display: grid;
+      place-items: center;
+      border-radius: 30px;
+      background: linear-gradient(135deg, rgba(129, 247, 216, 0.28), rgba(167, 139, 250, 0.28));
+      font-size: 2.5rem;
+      box-shadow: 0 14px 45px rgba(129, 247, 216, 0.12);
+      animation: floaty 2.2s ease-in-out infinite;
+    }
+
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
+    .timer {
+      display: none;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .timer.active { display: flex; }
+    .timer.expired { border-color: rgba(255, 209, 102, 0.5); background: rgba(255, 209, 102, 0.11); }
+    .timer strong { min-width: 3.5rem; }
+    .timer-line {
+      flex: 1;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.1);
+      overflow: hidden;
+    }
+    .timer-fill {
+      height: 100%;
+      width: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--warn), var(--bad));
+      transition: width 0.2s linear;
+    }
+
+    .phrase-card {
+      display: none;
+      padding: 1rem;
+      border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.075);
+      border: 1px solid var(--line);
+      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+
+    .phrase-card.visible { display: block; animation: pop 0.22s ease both; }
+    .phrase-card.clickable { cursor: pointer; }
+    .phrase-card.clickable:hover { transform: translateY(-1px); border-color: rgba(129,247,216,0.42); background: rgba(129,247,216,0.08); }
+    .phrase-label { margin: 0 0 0.35rem; color: var(--soft); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; }
+    .phrase-text { margin: 0; font-size: clamp(1.15rem, 4.5vw, 1.7rem); font-weight: 850; letter-spacing: -0.035em; }
+
+    @keyframes pop {
+      from { opacity: 0; transform: translateY(8px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.65rem;
+      scroll-margin-top: 1rem;
+      scroll-margin-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .actions.eval {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      display: none;
+      scroll-margin-top: 1rem;
+      scroll-margin-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .actions.eval.visible { display: grid; }
+
+    .status {
+      display: none;
+      padding: 0.75rem 0.85rem;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.07);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .status.visible { display: block; }
+    .status.error { color: #ffdbe3; border-color: rgba(255, 138, 166, 0.42); background: rgba(255, 138, 166, 0.1); }
+    .status.ok { color: #d8ffeb; border-color: rgba(94, 240, 166, 0.38); background: rgba(94, 240, 166, 0.1); }
+    .status.warn { color: #fff0c8; border-color: rgba(255, 209, 102, 0.42); background: rgba(255, 209, 102, 0.1); }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      min-height: 180px;
+      text-align: center;
+      color: var(--muted);
+      padding: 1rem;
+      border: 1px dashed rgba(255,255,255,0.16);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.035);
+    }
+
+    .empty-state .empty-icon { font-size: 2.2rem; line-height: 1; }
+    .empty-state h2 { margin: 0.35rem 0 0.25rem; font-size: 1rem; }
+    .empty-state p { margin: 0 auto; max-width: 44ch; font-size: 0.9rem; }
+
+    .session-controls { margin-top: 0.65rem; }
+    .session-controls .btn {
+      min-height: 42px;
+      padding: 0.55rem 0.75rem;
+      border-radius: 15px;
+    }
+
+    .result-card { display: none; margin-top: 1rem; padding: 1rem; }
+    .result-card.visible { display: block; animation: pop 0.22s ease both; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; margin: 1rem 0; }
+    .summary-item { padding: 0.85rem; border-radius: 18px; background: rgba(255,255,255,0.07); border: 1px solid var(--line); }
+    .summary-item b { display: block; font-size: 1.35rem; }
+    .review-list { display: grid; gap: 0.65rem; margin-top: 0.8rem; }
+    .review-item { padding: 0.85rem; border-radius: 18px; background: rgba(255,255,255,0.06); border: 1px solid var(--line); }
+    .review-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+
+    .toast-wrap {
+      position: fixed;
+      inset: auto 1rem 1rem 1rem;
+      z-index: 20;
+      display: grid;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .toast {
+      width: min(560px, 100%);
+      margin: 0 auto;
+      padding: 0.85rem 1rem;
+      border-radius: 16px;
+      background: rgba(18, 26, 42, 0.96);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      color: var(--text);
+      animation: toastIn 0.25s ease both;
+    }
+
+    .toast.good { border-color: rgba(94, 240, 166, 0.45); }
+    .toast.bad { border-color: rgba(255, 138, 166, 0.45); }
+    .toast.warn { border-color: rgba(255, 209, 102, 0.45); }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .confetti {
+      position: fixed;
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      pointer-events: none;
+      z-index: 30;
+      animation: confetti 900ms ease-out forwards;
+      background: var(--accent);
+    }
+
+    @keyframes confetti {
+      from { opacity: 1; transform: translate(var(--x0), var(--y0)) rotate(0deg) scale(1); }
+      to { opacity: 0; transform: translate(var(--x1), var(--y1)) rotate(220deg) scale(0.4); }
+    }
+
+    .kbd {
+      display: inline-flex;
+      min-width: 1.6em;
+      min-height: 1.45em;
+      align-items: center;
+      justify-content: center;
+      padding: 0 0.35em;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.08);
+      color: var(--muted);
+      font-size: 0.8em;
+    }
+
+    .footer-note { margin-top: 1rem; color: var(--soft); font-size: 0.8rem; }
+
+    @media (max-width: 920px) {
+      .layout,
+      .layout.session-active,
+      .layout.config-collapsed { grid-template-columns: 1fr; }
+      .top-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .game-card { min-height: auto; }
+    }
+
+    @media (max-width: 620px) {
+      .app { padding: 0.7rem; }
+      .hero { padding: 1rem; }
+      .panel, .game-card, .result-card { border-radius: 20px; }
+      .grid.two, .grid.three, .actions { grid-template-columns: 1fr; }
+      .actions.eval { grid-template-columns: 1fr 1fr; }
+      .top-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .round { padding: 0.78rem; }
+      .listen-bubble { min-height: 130px; }
+      .session-controls .btn { min-height: 40px; padding: 0.48rem 0.65rem; }
+      .summary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <h1>🎧 Frase em jogo</h1>
+      <p>Carregue seus áudios e textos para treinar reconhecimento auditivo por frase.</p>
+    </header>
+
+    <div id="appLayout" class="layout">
+      <aside id="configPanel" class="panel" aria-label="Configuração da sessão">
+        <div class="panel-header">
+          <h2>Configuração</h2>
+          <button id="hideConfigBtn" class="btn small ghost" type="button">Ocultar</button>
+        </div>
+
+        <div id="loadStatus" class="status visible warn" role="status">Carregue os 4 conjuntos de dados para validar a sessão.</div>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>1. Arquivos</h2>
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label for="targetAudioInput">Pasta/arquivos de áudio no idioma alvo</label>
+              <input id="targetAudioInput" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a" multiple webkitdirectory directory />
+              <div class="hint">Use seleção de pasta quando o navegador permitir. Em mobile, talvez seja necessário selecionar vários arquivos.</div>
+            </div>
+            <div class="field">
+              <label for="knownAudioInput">Pasta/arquivos de áudio no idioma conhecido</label>
+              <input id="knownAudioInput" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a" multiple webkitdirectory directory />
+            </div>
+            <div class="grid two">
+              <div class="field">
+                <label for="targetTextInput">TXT com frases no idioma alvo</label>
+                <input id="targetTextInput" type="file" accept=".txt,text/plain" />
+              </div>
+              <div class="field">
+                <label for="knownTextInput">TXT com frases no idioma conhecido</label>
+                <input id="knownTextInput" type="file" accept=".txt,text/plain" />
+              </div>
+            </div>
+            <button id="validateBtn" class="btn secondary" type="button">✅ Validar dados</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>2. Sessão</h2>
+            <span id="pairCountLabel" class="tiny soft">0 pares</span>
+          </div>
+
+          <div class="grid two">
+            <div class="field">
+              <label for="sessionSizeInput">Quantidade de frases</label>
+              <input id="sessionSizeInput" type="number" min="1" value="20" />
+            </div>
+            <div class="field">
+              <label for="orderModeSelect">Ordem</label>
+              <select id="orderModeSelect">
+                <option value="sequential">Sequencial</option>
+                <option value="random">Aleatória</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="startIndexInput">Começar na posição</label>
+              <input id="startIndexInput" type="number" min="1" value="1" />
+              <div class="hint">Usado no modo sequencial. A primeira posição é 1.</div>
+            </div>
+            <div class="field">
+              <label for="timerSecondsInput">Tempo por frase (segundos)</label>
+              <input id="timerSecondsInput" type="number" min="3" value="15" />
+            </div>
+          </div>
+
+          <div class="grid" style="margin-top: 0.75rem;">
+            <label class="check-row"><input id="timedModeInput" type="checkbox" /> Jogar com tempo</label>
+            <label class="check-row"><input id="hideConfigOnStartInput" type="checkbox" checked /> Ocultar configuração ao iniciar</label>
+            <label class="check-row"><input id="invertModeInput" type="checkbox" /> Inverter jogo: ouvir o idioma conhecido primeiro</label>
+            <label class="check-row"><input id="knownAudioEnabledInput" type="checkbox" checked /> Permitir áudio do idioma conhecido na resposta</label>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="grid two">
+            <button id="startBtn" class="btn primary" type="button">▶️ Iniciar sessão</button>
+            <button id="restartBtn" class="btn" type="button" disabled>🔁 Reiniciar</button>
+          </div>
+          <div class="grid two" style="margin-top: 0.65rem;">
+            <button id="exportConfigBtn" class="btn small" type="button">Exportar config</button>
+            <label class="btn small" for="importConfigInput">Importar config</label>
+            <input id="importConfigInput" type="file" accept="application/json,.json" style="display:none" />
+          </div>
+          <p class="footer-note">Atalhos: <span class="kbd">Espaço</span> repetir áudio · <span class="kbd">T</span> texto · <span class="kbd">R</span> resposta · <span class="kbd">1</span> acertei · <span class="kbd">2</span> errei · <span class="kbd">Enter</span> próxima ação.</p>
+        </section>
+      </aside>
+
+      <section class="game-card" aria-label="Área do jogo">
+        <div class="row-between">
+          <h2>Rodada</h2>
+          <button id="showConfigBtn" class="btn small ghost" type="button">Mostrar configuração</button>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+          <div>
+            <div class="empty-icon">🎧</div>
+            <h2>Pronto para estudar</h2>
+            <p>Depois de validar os dados, toque em <strong>Iniciar sessão</strong>. Esse toque também ajuda a liberar a primeira reprodução de áudio em navegadores móveis.</p>
+          </div>
+        </div>
+
+        <div id="gameArea" hidden>
+          <div class="top-stats" aria-label="Estatísticas da sessão">
+            <div class="stat"><b id="scoreValue">0</b><span>Pontos</span></div>
+            <div class="stat"><b id="correctValue">0</b><span>Acertos</span></div>
+            <div class="stat"><b id="wrongValue">0</b><span>Erros</span></div>
+            <div class="stat"><b id="streakValue">0</b><span>Sequência</span></div>
+            <div class="stat"><b id="audioOnlyValue">0</b><span>Só áudio</span></div>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-meta">
+              <span id="progressText">Frase 1 de 1</span>
+              <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar" aria-hidden="true"><div id="progressFill" class="progress-fill"></div></div>
+            <div id="markers" class="markers" aria-label="Marcadores de desempenho"></div>
+          </div>
+
+          <div id="roundBox" class="round">
+            <div id="timerBox" class="timer">
+              <strong id="timerText">15s</strong>
+              <div class="timer-line"><div id="timerFill" class="timer-fill"></div></div>
+            </div>
+
+            <div class="listen-bubble">
+              <div class="ear">👂</div>
+              <div>
+                <h2 id="listenTitle" style="margin:0;">Ouça a frase</h2>
+                <p id="listenHint" class="muted" style="margin:0.3rem 0 0;">Nada escrito será mostrado até você pedir.</p>
+              </div>
+            </div>
+
+            <div id="targetPhraseCard" class="phrase-card clickable" role="button" tabindex="0" aria-label="Tocar áudio da frase no idioma alvo">
+              <p id="targetLabel" class="phrase-label">Idioma alvo · toque para ouvir</p>
+              <p id="targetPhraseText" class="phrase-text"></p>
+            </div>
+
+            <div id="knownPhraseCard" class="phrase-card clickable" role="button" tabindex="0" aria-label="Tocar áudio da resposta no idioma conhecido">
+              <p id="knownLabel" class="phrase-label">Resposta · toque para ouvir</p>
+              <p id="knownPhraseText" class="phrase-text"></p>
+            </div>
+
+            <div id="roundStatus" class="status"></div>
+
+            <div id="answerActions" class="actions">
+              <button id="repeatAudioBtn" class="btn" type="button">🔊 Repetir</button>
+              <button id="showTargetBtn" class="btn secondary" type="button">👁️ Mostrar texto</button>
+              <button id="showAnswerBtn" class="btn warn" type="button">💬 Mostrar resposta</button>
+            </div>
+
+            <div id="evalActions" class="actions eval">
+              <button id="correctBtn" class="btn good" type="button">✅ Acertei</button>
+              <button id="wrongBtn" class="btn bad" type="button">❌ Errei</button>
+            </div>
+          </div>
+
+          <div class="grid three session-controls">
+            <button id="pauseBtn" class="btn" type="button">⏸️ Pausar</button>
+            <button id="endBtn" class="btn bad" type="button">⏹️ Encerrar</button>
+            <button id="newSessionBtn" class="btn" type="button">🔄 Nova sessão</button>
+          </div>
+        </div>
+
+        <section id="resultCard" class="result-card" aria-label="Resultado final">
+          <div class="row-between">
+            <h2>Resumo da sessão</h2>
+            <span id="achievementLabel" class="tiny soft"></span>
+          </div>
+          <div id="summaryGrid" class="summary-grid"></div>
+          <div class="grid two">
+            <button id="exportJsonBtn" class="btn" type="button">Exportar JSON</button>
+            <button id="exportCsvBtn" class="btn" type="button">Exportar CSV</button>
+          </div>
+          <div class="grid two" style="margin-top: 0.65rem;">
+            <button id="reviewErrorsBtn" class="btn secondary" type="button">Reiniciar só com erros</button>
+            <button id="reviewDifficultBtn" class="btn secondary" type="button">Repetir difíceis</button>
+          </div>
+          <div class="section">
+            <div class="section-title"><h2>Frases para revisão</h2></div>
+            <div id="reviewList" class="review-list"></div>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+
+  <div id="toastWrap" class="toast-wrap" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    /*
+      Jogo de reconhecimento auditivo de frases em arquivo único.
+      Não há backend: arquivos locais são lidos via File API e tocados com URL.createObjectURL().
+    */
+    const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "ogg", "m4a", "aac", "flac", "webm"]);
+    const STORAGE_KEY = "phrase-audio-game-preferences-v1";
+
+    const state = {
+      targetAudioFiles: [],
+      knownAudioFiles: [],
+      targetLines: [],
+      knownLines: [],
+      pairs: [],
+      urls: new Map(),
+      currentAudio: null,
+      session: [],
+      currentIndex: -1,
+      sessionStartedAt: null,
+      timerId: null,
+      timerEndsAt: null,
+      paused: false,
+      pausedRemainingMs: 0,
+      currentRound: null,
+      results: [],
+      lastSummary: null,
+      stats: {
+        score: 0,
+        correct: 0,
+        wrong: 0,
+        streak: 0,
+        bestStreak: 0,
+        audioOnly: 0,
+        withText: 0,
+        expired: 0
+      }
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    const els = {
+      appLayout: $("appLayout"),
+      configPanel: $("configPanel"),
+      hideConfigBtn: $("hideConfigBtn"),
+      showConfigBtn: $("showConfigBtn"),
+      loadStatus: $("loadStatus"),
+      targetAudioInput: $("targetAudioInput"),
+      knownAudioInput: $("knownAudioInput"),
+      targetTextInput: $("targetTextInput"),
+      knownTextInput: $("knownTextInput"),
+      validateBtn: $("validateBtn"),
+      pairCountLabel: $("pairCountLabel"),
+      sessionSizeInput: $("sessionSizeInput"),
+      orderModeSelect: $("orderModeSelect"),
+      startIndexInput: $("startIndexInput"),
+      timedModeInput: $("timedModeInput"),
+      timerSecondsInput: $("timerSecondsInput"),
+      hideConfigOnStartInput: $("hideConfigOnStartInput"),
+      invertModeInput: $("invertModeInput"),
+      knownAudioEnabledInput: $("knownAudioEnabledInput"),
+      startBtn: $("startBtn"),
+      restartBtn: $("restartBtn"),
+      exportConfigBtn: $("exportConfigBtn"),
+      importConfigInput: $("importConfigInput"),
+      emptyState: $("emptyState"),
+      gameArea: $("gameArea"),
+      scoreValue: $("scoreValue"),
+      correctValue: $("correctValue"),
+      wrongValue: $("wrongValue"),
+      streakValue: $("streakValue"),
+      audioOnlyValue: $("audioOnlyValue"),
+      progressText: $("progressText"),
+      progressPercent: $("progressPercent"),
+      progressFill: $("progressFill"),
+      markers: $("markers"),
+      roundBox: $("roundBox"),
+      timerBox: $("timerBox"),
+      timerText: $("timerText"),
+      timerFill: $("timerFill"),
+      listenTitle: $("listenTitle"),
+      listenHint: $("listenHint"),
+      targetPhraseCard: $("targetPhraseCard"),
+      targetLabel: $("targetLabel"),
+      targetPhraseText: $("targetPhraseText"),
+      knownPhraseCard: $("knownPhraseCard"),
+      knownLabel: $("knownLabel"),
+      knownPhraseText: $("knownPhraseText"),
+      roundStatus: $("roundStatus"),
+      repeatAudioBtn: $("repeatAudioBtn"),
+      answerActions: $("answerActions"),
+      showTargetBtn: $("showTargetBtn"),
+      showAnswerBtn: $("showAnswerBtn"),
+      evalActions: $("evalActions"),
+      correctBtn: $("correctBtn"),
+      wrongBtn: $("wrongBtn"),
+      pauseBtn: $("pauseBtn"),
+      endBtn: $("endBtn"),
+      newSessionBtn: $("newSessionBtn"),
+      resultCard: $("resultCard"),
+      summaryGrid: $("summaryGrid"),
+      achievementLabel: $("achievementLabel"),
+      exportJsonBtn: $("exportJsonBtn"),
+      exportCsvBtn: $("exportCsvBtn"),
+      reviewErrorsBtn: $("reviewErrorsBtn"),
+      reviewDifficultBtn: $("reviewDifficultBtn"),
+      reviewList: $("reviewList"),
+      toastWrap: $("toastWrap")
+    };
+
+    init();
+
+    function init() {
+      loadPreferences();
+      bindEvents();
+      setConfigVisible(true);
+      updatePairCount();
+      updateStatsUI();
+      setStatus(els.loadStatus, "Carregue os 4 conjuntos de dados para validar a sessão.", "warn");
+      window.addEventListener("beforeunload", revokeAllObjectUrls);
+    }
+
+    function bindEvents() {
+      els.validateBtn.addEventListener("click", validateData);
+      els.startBtn.addEventListener("click", () => startSession());
+      els.restartBtn.addEventListener("click", () => startSession(state.session.map(item => item.originalIndex)));
+      els.hideConfigBtn.addEventListener("click", () => setConfigVisible(false));
+      els.showConfigBtn.addEventListener("click", () => setConfigVisible(els.configPanel.classList.contains("hidden-config")));
+
+      [els.sessionSizeInput, els.orderModeSelect, els.startIndexInput, els.timedModeInput, els.timerSecondsInput, els.hideConfigOnStartInput, els.invertModeInput, els.knownAudioEnabledInput]
+        .forEach(el => el.addEventListener("change", savePreferences));
+
+      els.exportConfigBtn.addEventListener("click", exportConfig);
+      els.importConfigInput.addEventListener("change", importConfig);
+
+      els.repeatAudioBtn.addEventListener("click", repeatPromptAudio);
+      els.showTargetBtn.addEventListener("click", showTargetPhrase);
+      els.showAnswerBtn.addEventListener("click", showAnswer);
+      els.correctBtn.addEventListener("click", () => evaluateRound(true));
+      els.wrongBtn.addEventListener("click", () => evaluateRound(false));
+      els.pauseBtn.addEventListener("click", togglePause);
+      els.endBtn.addEventListener("click", () => finishSession("Sessão encerrada."));
+      els.newSessionBtn.addEventListener("click", () => startSession());
+
+      els.targetPhraseCard.addEventListener("click", () => playPairAudio(getCurrentPair(), "target"));
+      els.knownPhraseCard.addEventListener("click", () => playPairAudio(getCurrentPair(), "known"));
+      els.targetPhraseCard.addEventListener("keydown", cardKeyHandler);
+      els.knownPhraseCard.addEventListener("keydown", cardKeyHandler);
+
+      els.exportJsonBtn.addEventListener("click", exportResultsJson);
+      els.exportCsvBtn.addEventListener("click", exportResultsCsv);
+      els.reviewErrorsBtn.addEventListener("click", () => restartFromResults("wrong"));
+      els.reviewDifficultBtn.addEventListener("click", () => restartFromResults("difficult"));
+
+      document.addEventListener("keydown", handleKeyboard);
+    }
+
+    function cardKeyHandler(event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        event.currentTarget.click();
+      }
+    }
+
+    function setConfigVisible(visible) {
+      els.configPanel.classList.toggle("hidden-config", !visible);
+      els.appLayout.classList.toggle("config-collapsed", !visible);
+      els.showConfigBtn.textContent = visible ? "Ocultar configuração" : "Mostrar configuração";
+      els.showConfigBtn.setAttribute("aria-pressed", String(visible));
+    }
+
+    function keepControlsVisible(element) {
+      if (!element) return;
+
+      const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      window.requestAnimationFrame(() => {
+        element.scrollIntoView({
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+          block: "end",
+          inline: "nearest"
+        });
+      });
+    }
+
+    // -------------------------
+    // Carregamento e validação
+    // -------------------------
+    async function validateData() {
+      try {
+        clearRoundStatus();
+        revokeAllObjectUrls();
+        state.targetAudioFiles = filterAudioFiles(Array.from(els.targetAudioInput.files || []));
+        state.knownAudioFiles = filterAudioFiles(Array.from(els.knownAudioInput.files || []));
+
+        const targetTxt = els.targetTextInput.files?.[0];
+        const knownTxt = els.knownTextInput.files?.[0];
+        if (!targetTxt || !knownTxt) throw new Error("Selecione os dois arquivos TXT.");
+        if (!state.targetAudioFiles.length) throw new Error("Nenhum áudio compatível foi encontrado na pasta/seleção do idioma alvo.");
+        if (!state.knownAudioFiles.length) throw new Error("Nenhum áudio compatível foi encontrado na pasta/seleção do idioma conhecido.");
+
+        state.targetAudioFiles.sort(naturalFileSort);
+        state.knownAudioFiles.sort(naturalFileSort);
+        state.targetLines = parseTextLines(await targetTxt.text(), "idioma alvo");
+        state.knownLines = parseTextLines(await knownTxt.text(), "idioma conhecido");
+
+        if (state.targetLines.length !== state.knownLines.length) {
+          throw new Error(`Os TXT têm quantidades diferentes de linhas não vazias: alvo=${state.targetLines.length}, conhecido=${state.knownLines.length}.`);
+        }
+        if (state.targetAudioFiles.length !== state.knownAudioFiles.length) {
+          throw new Error(`As pastas têm quantidades diferentes de áudios compatíveis: alvo=${state.targetAudioFiles.length}, conhecido=${state.knownAudioFiles.length}.`);
+        }
+        if (state.targetLines.length !== state.targetAudioFiles.length) {
+          throw new Error(`A quantidade de frases (${state.targetLines.length}) não corresponde à quantidade de áudios (${state.targetAudioFiles.length}).`);
+        }
+
+        state.pairs = createPairs();
+        els.sessionSizeInput.max = String(state.pairs.length);
+        els.sessionSizeInput.value = String(Math.min(numberValue(els.sessionSizeInput, 20), state.pairs.length));
+        els.startIndexInput.max = String(state.pairs.length);
+        updatePairCount();
+        els.restartBtn.disabled = true;
+        setStatus(els.loadStatus, `Dados validados: ${state.pairs.length} pares prontos.`, "ok");
+        toast("Tudo certo! Os pares foram criados por índice.", "good");
+      } catch (error) {
+        state.pairs = [];
+        updatePairCount();
+        setStatus(els.loadStatus, error.message || "Não foi possível validar os dados.", "error");
+        toast(error.message || "Erro ao validar dados.", "bad");
+      }
+    }
+
+    function filterAudioFiles(files) {
+      return files.filter(file => {
+        const name = file.name || "";
+        const ext = name.split(".").pop()?.toLowerCase();
+        return AUDIO_EXTENSIONS.has(ext) || file.type.startsWith("audio/");
+      });
+    }
+
+    function naturalFileSort(a, b) {
+      const pathA = (a.webkitRelativePath || a.name || "").toLowerCase();
+      const pathB = (b.webkitRelativePath || b.name || "").toLowerCase();
+      return pathA.localeCompare(pathB, undefined, { numeric: true, sensitivity: "base" });
+    }
+
+    function parseTextLines(text, label) {
+      const normalized = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+      const rawLines = normalized.split("\n");
+      const emptyPositions = [];
+      rawLines.forEach((line, index) => {
+        if (!line.trim()) emptyPositions.push(index + 1);
+      });
+      const lines = rawLines.map(line => line.trim()).filter(Boolean);
+      if (!lines.length) throw new Error(`O TXT do ${label} não contém linhas válidas.`);
+      if (emptyPositions.length) {
+        console.warn(`Linhas vazias ignoradas no TXT do ${label}:`, emptyPositions.join(", "));
+      }
+      return lines;
+    }
+
+    function createPairs() {
+      return state.targetLines.map((targetText, index) => ({
+        id: index + 1,
+        originalIndex: index,
+        targetText,
+        knownText: state.knownLines[index],
+        targetAudio: state.targetAudioFiles[index],
+        knownAudio: state.knownAudioFiles[index],
+        targetAudioName: state.targetAudioFiles[index]?.webkitRelativePath || state.targetAudioFiles[index]?.name || "",
+        knownAudioName: state.knownAudioFiles[index]?.webkitRelativePath || state.knownAudioFiles[index]?.name || ""
+      }));
+    }
+
+    function updatePairCount() {
+      els.pairCountLabel.textContent = `${state.pairs.length} pares`;
+    }
+
+    // -------------------------
+    // Configuração da sessão
+    // -------------------------
+    function startSession(forcedIndexes = null) {
+      try {
+        if (!state.pairs.length) throw new Error("Valide os dados antes de iniciar.");
+        savePreferences();
+        resetSessionStats();
+        state.session = buildSession(forcedIndexes);
+        if (!state.session.length) throw new Error("A sessão não contém frases.");
+        state.sessionStartedAt = Date.now();
+        state.currentIndex = -1;
+        state.results = [];
+        state.lastSummary = null;
+        state.paused = false;
+        state.pausedRemainingMs = 0;
+
+        els.appLayout.classList.add("session-active");
+        els.emptyState.hidden = true;
+        els.gameArea.hidden = false;
+        els.resultCard.classList.remove("visible");
+        els.restartBtn.disabled = false;
+        els.pauseBtn.textContent = "⏸️ Pausar";
+        els.roundBox.classList.remove("paused");
+        if (els.hideConfigOnStartInput.checked) setConfigVisible(false);
+        else setConfigVisible(true);
+
+        createMarkers();
+        nextRound();
+        toast("Sessão iniciada. Boa escuta!", "good");
+      } catch (error) {
+        setStatus(els.loadStatus, error.message || "Não foi possível iniciar.", "error");
+        toast(error.message || "Não foi possível iniciar.", "bad");
+      }
+    }
+
+    function buildSession(forcedIndexes) {
+      if (Array.isArray(forcedIndexes) && forcedIndexes.length) {
+        return forcedIndexes.map(i => state.pairs[i]).filter(Boolean);
+      }
+
+      const size = Math.max(1, Math.min(numberValue(els.sessionSizeInput, 20), state.pairs.length));
+      const mode = els.orderModeSelect.value;
+      const indexes = [...state.pairs.keys()];
+
+      if (mode === "random") {
+        shuffle(indexes);
+        return indexes.slice(0, size).map(i => state.pairs[i]);
+      }
+
+      const start = Math.max(0, Math.min(numberValue(els.startIndexInput, 1) - 1, state.pairs.length - 1));
+      const sequentialIndexes = [];
+      for (let step = 0; step < state.pairs.length && sequentialIndexes.length < size; step++) {
+        sequentialIndexes.push((start + step) % state.pairs.length);
+      }
+      return sequentialIndexes.map(i => state.pairs[i]);
+    }
+
+    function resetSessionStats() {
+      stopTimer();
+      stopAudio();
+      state.stats = { score: 0, correct: 0, wrong: 0, streak: 0, bestStreak: 0, audioOnly: 0, withText: 0, expired: 0 };
+      updateStatsUI();
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function numberValue(input, fallback) {
+      const value = Number.parseInt(input.value, 10);
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function savePreferences() {
+      const prefs = {
+        sessionSize: numberValue(els.sessionSizeInput, 20),
+        orderMode: els.orderModeSelect.value,
+        startIndex: numberValue(els.startIndexInput, 1),
+        timedMode: els.timedModeInput.checked,
+        timerSeconds: numberValue(els.timerSecondsInput, 15),
+        hideConfigOnStart: els.hideConfigOnStartInput.checked,
+        invertMode: els.invertModeInput.checked,
+        knownAudioEnabled: els.knownAudioEnabledInput.checked
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    }
+
+    function loadPreferences() {
+      try {
+        const prefs = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!prefs) return;
+        els.sessionSizeInput.value = prefs.sessionSize ?? 20;
+        els.orderModeSelect.value = prefs.orderMode ?? "sequential";
+        els.startIndexInput.value = prefs.startIndex ?? 1;
+        els.timedModeInput.checked = Boolean(prefs.timedMode);
+        els.timerSecondsInput.value = prefs.timerSeconds ?? 15;
+        els.hideConfigOnStartInput.checked = prefs.hideConfigOnStart !== false;
+        els.invertModeInput.checked = Boolean(prefs.invertMode);
+        els.knownAudioEnabledInput.checked = prefs.knownAudioEnabled !== false;
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+
+    function exportConfig() {
+      savePreferences();
+      const blob = new Blob([localStorage.getItem(STORAGE_KEY) || "{}"], { type: "application/json;charset=utf-8" });
+      downloadBlob(blob, `config-frase-em-jogo-${dateStamp()}.json`);
+    }
+
+    async function importConfig(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const prefs = JSON.parse(await file.text());
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+        loadPreferences();
+        toast("Configuração importada.", "good");
+      } catch {
+        toast("Não foi possível importar a configuração.", "bad");
+      } finally {
+        event.target.value = "";
+      }
+    }
+
+    // -------------------------
+    // Fluxo das rodadas
+    // -------------------------
+    function nextRound() {
+      stopTimer();
+      stopAudio();
+      state.currentIndex += 1;
+
+      if (state.currentIndex >= state.session.length) {
+        finishSession("Sessão concluída!");
+        return;
+      }
+
+      const pair = getCurrentPair();
+      state.currentRound = {
+        pair,
+        revealedTarget: false,
+        revealedAnswer: false,
+        timeExpired: false,
+        startedAt: Date.now(),
+        evaluatedAt: null,
+        promptSide: els.invertModeInput.checked ? "known" : "target"
+      };
+
+      els.roundBox.classList.remove("paused");
+      els.targetPhraseCard.classList.remove("visible");
+      els.knownPhraseCard.classList.remove("visible");
+      els.evalActions.classList.remove("visible");
+      els.showTargetBtn.disabled = false;
+      els.showAnswerBtn.disabled = false;
+      els.correctBtn.disabled = false;
+      els.wrongBtn.disabled = false;
+      clearRoundStatus();
+
+      const inverted = state.currentRound.promptSide === "known";
+      els.listenTitle.textContent = inverted ? "Ouça no idioma conhecido" : "Ouça a frase";
+      els.listenHint.textContent = inverted ? "Tente lembrar/reconhecer a frase no idioma alvo." : "Nada escrito será mostrado até você pedir.";
+      els.targetLabel.textContent = inverted ? "Idioma alvo · resposta esperada" : "Idioma alvo · toque para ouvir";
+      els.knownLabel.textContent = inverted ? "Idioma conhecido · áudio inicial" : "Resposta · toque para ouvir";
+      els.targetPhraseText.textContent = pair.targetText;
+      els.knownPhraseText.textContent = pair.knownText;
+
+      updateProgressUI();
+      updateStatsUI();
+      playPairAudio(pair, state.currentRound.promptSide);
+      startTimerIfNeeded();
+    }
+
+    function getCurrentPair() {
+      return state.session[state.currentIndex] || null;
+    }
+
+    function repeatPromptAudio() {
+      if (!state.currentRound || state.paused) return;
+      playPairAudio(getCurrentPair(), state.currentRound.promptSide);
+    }
+
+    function showTargetPhrase() {
+      if (!state.currentRound || state.paused) return;
+      state.currentRound.revealedTarget = true;
+      els.targetPhraseCard.classList.add("visible");
+      els.showTargetBtn.disabled = true;
+      els.showAnswerBtn.textContent = "💬 Mostrar resposta";
+      setRoundStatus("Texto revelado. Agora mostre a resposta para avaliar.", "warn");
+      keepControlsVisible(els.answerActions);
+    }
+
+    function showAnswer() {
+      if (!state.currentRound || state.paused) return;
+      state.currentRound.revealedAnswer = true;
+      els.targetPhraseCard.classList.add("visible");
+      els.knownPhraseCard.classList.add("visible");
+      els.showAnswerBtn.disabled = true;
+      els.showTargetBtn.disabled = true;
+      els.evalActions.classList.add("visible");
+      stopTimer(false);
+      setRoundStatus("Avalie seu desempenho para avançar.", state.currentRound.timeExpired ? "warn" : "ok");
+      keepControlsVisible(els.evalActions);
+    }
+
+    function evaluateRound(isCorrect) {
+      if (!state.currentRound || !state.currentRound.revealedAnswer || state.paused) {
+        if (state.currentRound && !state.currentRound.revealedAnswer) showAnswer();
+        return;
+      }
+
+      const round = state.currentRound;
+      round.evaluatedAt = Date.now();
+      const scoreInfo = calculateScore(isCorrect, round);
+      applyScore(isCorrect, scoreInfo);
+
+      const result = {
+        id: round.pair.id,
+        originalIndex: round.pair.originalIndex,
+        targetText: round.pair.targetText,
+        knownText: round.pair.knownText,
+        targetAudioName: round.pair.targetAudioName,
+        knownAudioName: round.pair.knownAudioName,
+        correct: isCorrect,
+        revealedTarget: round.revealedTarget,
+        audioOnly: isCorrect && !round.revealedTarget && !round.timeExpired,
+        timeExpired: round.timeExpired,
+        score: scoreInfo.total,
+        baseScore: scoreInfo.base,
+        bonus: scoreInfo.bonus,
+        seconds: Math.round((round.evaluatedAt - round.startedAt) / 1000)
+      };
+      state.results.push(result);
+      updateMarker(state.currentIndex, result);
+      updateStatsUI();
+
+      if (isCorrect) {
+        popConfetti();
+        toast(scoreInfo.message, "good");
+      } else {
+        toast("Marcado para revisão. Próxima frase!", "bad");
+      }
+      window.setTimeout(nextRound, 420);
+    }
+
+    // -------------------------
+    // Pontuação
+    // -------------------------
+    function calculateScore(isCorrect, round) {
+      if (!isCorrect || round.timeExpired) {
+        return { base: 0, bonus: 0, total: 0, message: round.timeExpired ? "Tempo encerrado: sem pontuação nesta frase." : "Sem pontuação nesta frase." };
+      }
+      const base = round.revealedTarget ? 5 : 10;
+      let futureStreak = state.stats.streak + 1;
+      let bonus = 0;
+      if (!round.revealedTarget) {
+        if (futureStreak === 3) bonus += 5;
+        if (futureStreak === 5) bonus += 10;
+      }
+      const total = base + bonus;
+      return {
+        base,
+        bonus,
+        total,
+        message: bonus ? `+${base} pontos + bônus de sequência (+${bonus})!` : `+${base} pontos!`
+      };
+    }
+
+    function applyScore(isCorrect, scoreInfo) {
+      state.stats.score += scoreInfo.total;
+      if (isCorrect) {
+        state.stats.correct += 1;
+        state.stats.streak += 1;
+        state.stats.bestStreak = Math.max(state.stats.bestStreak, state.stats.streak);
+        if (state.currentRound.revealedTarget || state.currentRound.timeExpired) state.stats.withText += 1;
+        else state.stats.audioOnly += 1;
+      } else {
+        state.stats.wrong += 1;
+        state.stats.streak = 0;
+      }
+      if (state.currentRound.timeExpired) state.stats.expired += 1;
+    }
+
+    function updateStatsUI() {
+      els.scoreValue.textContent = state.stats.score;
+      els.correctValue.textContent = state.stats.correct;
+      els.wrongValue.textContent = state.stats.wrong;
+      els.streakValue.textContent = state.stats.streak;
+      els.audioOnlyValue.textContent = state.stats.audioOnly;
+    }
+
+    // -------------------------
+    // Áudio e URLs locais
+    // -------------------------
+    function playPairAudio(pair, side) {
+      if (!pair) return;
+      if (side === "known" && !els.knownAudioEnabledInput.checked && state.currentRound?.promptSide !== "known") {
+        toast("Áudio do idioma conhecido está desativado.", "warn");
+        return;
+      }
+      const file = side === "known" ? pair.knownAudio : pair.targetAudio;
+      if (!file) return;
+      const url = getObjectUrl(file);
+      stopAudio();
+      const audio = new Audio(url);
+      state.currentAudio = audio;
+      audio.play().catch(() => {
+        toast("O navegador bloqueou a reprodução automática. Toque em Repetir para ouvir.", "warn");
+      });
+    }
+
+    function getObjectUrl(file) {
+      if (!state.urls.has(file)) {
+        state.urls.set(file, URL.createObjectURL(file));
+      }
+      return state.urls.get(file);
+    }
+
+    function stopAudio() {
+      if (state.currentAudio) {
+        state.currentAudio.pause();
+        state.currentAudio.currentTime = 0;
+      }
+      state.currentAudio = null;
+    }
+
+    function revokeAllObjectUrls() {
+      for (const url of state.urls.values()) URL.revokeObjectURL(url);
+      state.urls.clear();
+    }
+
+    // -------------------------
+    // Timer
+    // -------------------------
+    function startTimerIfNeeded() {
+      els.timerBox.classList.remove("active", "expired");
+      els.timerFill.style.width = "100%";
+      if (!els.timedModeInput.checked) return;
+      const seconds = Math.max(3, numberValue(els.timerSecondsInput, 15));
+      state.timerEndsAt = Date.now() + seconds * 1000;
+      els.timerBox.classList.add("active");
+      tickTimer();
+      state.timerId = window.setInterval(tickTimer, 200);
+    }
+
+    function tickTimer() {
+      if (!state.currentRound || state.paused) return;
+      const total = Math.max(3, numberValue(els.timerSecondsInput, 15)) * 1000;
+      const remaining = Math.max(0, state.timerEndsAt - Date.now());
+      const percent = Math.max(0, Math.min(100, (remaining / total) * 100));
+      els.timerText.textContent = `${Math.ceil(remaining / 1000)}s`;
+      els.timerFill.style.width = `${percent}%`;
+
+      if (remaining <= 0) {
+        state.currentRound.timeExpired = true;
+        stopTimer(false);
+        els.timerBox.classList.add("expired");
+        setRoundStatus("Tempo encerrado. Você ainda pode revelar texto e resposta, mas esta frase não pontuará.", "warn");
+        keepControlsVisible(els.answerActions);
+      }
+    }
+
+    function stopTimer(hide = true) {
+      if (state.timerId) window.clearInterval(state.timerId);
+      state.timerId = null;
+      if (hide) els.timerBox.classList.remove("active", "expired");
+    }
+
+    // -------------------------
+    // Pausar, encerrar e progresso
+    // -------------------------
+    function togglePause() {
+      if (!state.session.length || state.currentIndex < 0 || state.currentIndex >= state.session.length) return;
+      state.paused = !state.paused;
+      els.roundBox.classList.toggle("paused", state.paused);
+      els.pauseBtn.textContent = state.paused ? "▶️ Retomar" : "⏸️ Pausar";
+
+      if (state.paused) {
+        stopAudio();
+        if (state.timerId) {
+          state.pausedRemainingMs = Math.max(0, state.timerEndsAt - Date.now());
+          stopTimer(false);
+        }
+      } else {
+        if (els.timedModeInput.checked && state.pausedRemainingMs > 0 && !state.currentRound.revealedAnswer && !state.currentRound.timeExpired) {
+          state.timerEndsAt = Date.now() + state.pausedRemainingMs;
+          tickTimer();
+          state.timerId = window.setInterval(tickTimer, 200);
+        }
+        repeatPromptAudio();
+      }
+    }
+
+    function updateProgressUI() {
+      const total = state.session.length || 1;
+      const shownIndex = Math.min(state.currentIndex + 1, total);
+      const completed = Math.max(0, state.currentIndex);
+      const percent = Math.round((completed / total) * 100);
+      els.progressText.textContent = `Frase ${shownIndex} de ${total}`;
+      els.progressPercent.textContent = `${percent}% concluído`;
+      els.progressFill.style.width = `${percent}%`;
+    }
+
+    function createMarkers() {
+      els.markers.innerHTML = "";
+      for (let i = 0; i < state.session.length; i++) {
+        const marker = document.createElement("span");
+        marker.className = "marker";
+        marker.title = `Frase ${i + 1}`;
+        els.markers.appendChild(marker);
+      }
+    }
+
+    function updateMarker(index, result) {
+      const marker = els.markers.children[index];
+      if (!marker) return;
+      marker.className = "marker " + (result.correct ? (result.revealedTarget || result.timeExpired ? "text" : "good") : "bad");
+      marker.title = result.correct ? (result.audioOnly ? "Acerto só com áudio" : "Acerto após ajuda") : "Erro";
+      const total = state.session.length || 1;
+      const percent = Math.round((state.results.length / total) * 100);
+      els.progressPercent.textContent = `${percent}% concluído`;
+      els.progressFill.style.width = `${percent}%`;
+    }
+
+    function finishSession(message) {
+      stopTimer();
+      stopAudio();
+      const total = state.results.length;
+      if (!total) {
+        toast("Nenhuma frase foi avaliada ainda.", "warn");
+        return;
+      }
+      const elapsedSeconds = Math.round((Date.now() - state.sessionStartedAt) / 1000);
+      const difficult = state.results.filter(r => !r.correct || r.revealedTarget || r.timeExpired);
+      const wrongResults = state.results.filter(r => !r.correct);
+      const precision = total ? Math.round((state.stats.correct / total) * 100) : 0;
+      state.lastSummary = {
+        message,
+        score: state.stats.score,
+        total,
+        correct: state.stats.correct,
+        wrong: state.stats.wrong,
+        audioOnly: state.stats.audioOnly,
+        withText: state.stats.withText,
+        precision,
+        bestStreak: state.stats.bestStreak,
+        expired: state.stats.expired,
+        elapsedSeconds,
+        wrongResults,
+        difficult,
+        results: state.results.slice()
+      };
+      renderSummary(state.lastSummary);
+      els.progressPercent.textContent = "100% concluído";
+      els.progressFill.style.width = "100%";
+      els.resultCard.classList.add("visible");
+      toast(message, "good");
+    }
+
+    // -------------------------
+    // Resultado final e revisão
+    // -------------------------
+    function renderSummary(summary) {
+      const achievement = getAchievement(summary);
+      els.achievementLabel.textContent = achievement;
+      const items = [
+        ["Pontuação", summary.score],
+        ["Frases", summary.total],
+        ["Acertos", summary.correct],
+        ["Erros", summary.wrong],
+        ["Só áudio", summary.audioOnly],
+        ["Com texto", summary.withText],
+        ["Precisão", `${summary.precision}%`],
+        ["Melhor sequência", summary.bestStreak],
+        ["Tempo total", formatTime(summary.elapsedSeconds)],
+        ["Tempo esgotado", summary.expired]
+      ];
+      els.summaryGrid.innerHTML = items.map(([label, value]) => `
+        <div class="summary-item"><b>${escapeHtml(String(value))}</b><span class="soft">${escapeHtml(label)}</span></div>
+      `).join("");
+
+      const reviewItems = summary.difficult.length ? summary.difficult : summary.results.filter(r => !r.audioOnly);
+      els.reviewList.innerHTML = reviewItems.length ? reviewItems.map(renderReviewItem).join("") : `<p class="muted">Nenhuma frase difícil registrada. Excelente!</p>`;
+    }
+
+    function renderReviewItem(result) {
+      const tag = result.correct ? (result.timeExpired ? "Tempo esgotado" : "Acerto com ajuda") : "Erro";
+      return `
+        <article class="review-item">
+          <div class="row-between">
+            <strong>#${result.id} · ${escapeHtml(tag)}</strong>
+            <span class="soft tiny">${result.score} ponto(s)</span>
+          </div>
+          <p><strong>Alvo:</strong> ${escapeHtml(result.targetText)}</p>
+          <p><strong>Conhecido:</strong> ${escapeHtml(result.knownText)}</p>
+          <div class="review-actions">
+            <button class="btn small" type="button" data-play="target" data-index="${result.originalIndex}">🔊 Áudio alvo</button>
+            <button class="btn small" type="button" data-play="known" data-index="${result.originalIndex}">🔊 Áudio conhecido</button>
+          </div>
+        </article>`;
+    }
+
+    els.reviewList.addEventListener("click", (event) => {
+      const btn = event.target.closest("button[data-play]");
+      if (!btn) return;
+      const index = Number(btn.dataset.index);
+      const side = btn.dataset.play;
+      const pair = state.pairs[index];
+      playPairAudio(pair, side);
+    });
+
+    function restartFromResults(kind) {
+      if (!state.lastSummary) return;
+      const source = kind === "wrong" ? state.lastSummary.wrongResults : state.lastSummary.difficult;
+      if (!source.length) {
+        toast(kind === "wrong" ? "Não há erros para revisar." : "Não há frases difíceis para revisar.", "warn");
+        return;
+      }
+      startSession(source.map(item => item.originalIndex));
+    }
+
+    function getAchievement(summary) {
+      if (summary.total >= 10 && summary.precision === 100 && summary.audioOnly === summary.total) return "🏆 100% só com áudio";
+      if (summary.bestStreak >= 5) return "🔥 5 acertos seguidos";
+      if (summary.total >= 10) return `🎯 ${summary.total} frases concluídas`;
+      return "✨ Sessão registrada";
+    }
+
+    function exportResultsJson() {
+      if (!state.lastSummary) return;
+      const blob = new Blob([JSON.stringify(state.lastSummary, null, 2)], { type: "application/json;charset=utf-8" });
+      downloadBlob(blob, `resultado-frase-em-jogo-${dateStamp()}.json`);
+    }
+
+    function exportResultsCsv() {
+      if (!state.lastSummary) return;
+      const headers = ["id", "targetText", "knownText", "correct", "revealedTarget", "audioOnly", "timeExpired", "score", "seconds", "targetAudioName", "knownAudioName"];
+      const rows = state.lastSummary.results.map(result => headers.map(h => csvCell(result[h])).join(","));
+      const csv = [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      downloadBlob(blob, `resultado-frase-em-jogo-${dateStamp()}.csv`);
+    }
+
+    // -------------------------
+    // Utilidades de UI
+    // -------------------------
+    function setStatus(element, message, type = "") {
+      element.textContent = message;
+      element.className = `status visible ${type}`.trim();
+    }
+
+    function setRoundStatus(message, type = "") {
+      setStatus(els.roundStatus, message, type);
+    }
+
+    function clearRoundStatus() {
+      els.roundStatus.textContent = "";
+      els.roundStatus.className = "status";
+    }
+
+    function toast(message, type = "") {
+      const el = document.createElement("div");
+      el.className = `toast ${type}`.trim();
+      el.textContent = message;
+      els.toastWrap.appendChild(el);
+      window.setTimeout(() => {
+        el.style.opacity = "0";
+        el.style.transform = "translateY(8px)";
+        window.setTimeout(() => el.remove(), 200);
+      }, 2600);
+    }
+
+    function popConfetti() {
+      const colors = ["var(--accent)", "var(--accent-2)", "var(--good)", "var(--warn)"];
+      for (let i = 0; i < 18; i++) {
+        const piece = document.createElement("span");
+        piece.className = "confetti";
+        piece.style.left = "50vw";
+        piece.style.top = "42vh";
+        piece.style.background = colors[i % colors.length];
+        piece.style.setProperty("--x0", "0px");
+        piece.style.setProperty("--y0", "0px");
+        piece.style.setProperty("--x1", `${(Math.random() - 0.5) * 260}px`);
+        piece.style.setProperty("--y1", `${-60 - Math.random() * 180}px`);
+        document.body.appendChild(piece);
+        window.setTimeout(() => piece.remove(), 920);
+      }
+    }
+
+    function handleKeyboard(event) {
+      const activeTag = document.activeElement?.tagName?.toLowerCase();
+      if (["input", "select", "textarea"].includes(activeTag)) return;
+      if (els.gameArea.hidden || !state.currentRound) return;
+
+      if (event.key === " ") { event.preventDefault(); repeatPromptAudio(); }
+      if (event.key.toLowerCase() === "t") showTargetPhrase();
+      if (event.key.toLowerCase() === "r") showAnswer();
+      if (event.key === "1") evaluateRound(true);
+      if (event.key === "2") evaluateRound(false);
+      if (event.key === "Enter") {
+        if (!state.currentRound.revealedAnswer) showAnswer();
+        else if (els.evalActions.classList.contains("visible")) evaluateRound(true);
+      }
+    }
+
+    function formatTime(seconds) {
+      const min = Math.floor(seconds / 60);
+      const sec = seconds % 60;
+      return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    }
+
+    function dateStamp() {
+      return new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    function csvCell(value) {
+      const text = String(value ?? "").replace(/"/g, '""');
+      return `"${text}"`;
+    }
+
+    function escapeHtml(text) {
+      const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
+      return text.replace(/[&<>"']/g, char => map[char]);
+    }
+  </script>
+</body>
+</html>
